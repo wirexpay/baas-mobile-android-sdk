@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Wirex Mobile SDK (Android) — Integration Guide</title>
-<meta name="description" content="How to integrate the Wirex Mobile SDK: Reveal, Collect, 3DS and Wallet top-up — credentials, each surface, appearance and the runnable example." />
+<title>Wirex Mobile SDK for Android — Integration Guide</title>
+<meta name="description" content="One Maven artifact, four sealed surfaces: card **Reveal**, card **Collect**, **3-D Secure** and **Wallet** top-up with Google Pay. This guide covers what each s" />
 <style>
-  :root {
+:root {
     --bg: #0e0f13;
     --surface: #171922;
     --surface-alt: #1f2230;
@@ -101,21 +101,21 @@
   .flow .n { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-weight: 600; }
   .flow .arw { color: var(--faint); }
   .muted { color: var(--faint); font-size: 13.5px; }
-  figure.diagram { margin: 22px 0; }
+  figure.diagram { margin: 28px 0; }
   figure.diagram svg { width: 100%; height: auto; display: block; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
   figure.diagram figcaption { color: var(--faint); font-size: 13px; margin-top: 8px; text-align: center; }
   .diagram .d-panel { fill: var(--surface-alt); stroke: var(--border); }
   .diagram .d-box { fill: var(--bg); stroke: var(--border); }
-  .diagram .d-title { fill: var(--faint); font: 800 11px -apple-system, Segoe UI, Roboto, sans-serif; letter-spacing: .09em; text-transform: uppercase; }
-  .diagram .d-h { fill: var(--text); font: 700 14px -apple-system, Segoe UI, Roboto, sans-serif; }
-  .diagram .d-t { fill: var(--dim); font: 13px ui-monospace, Menlo, monospace; }
-  .diagram .d-n { fill: var(--faint); font: 12px -apple-system, Segoe UI, Roboto, sans-serif; }
+  .diagram .d-title { fill: var(--faint); font: 800 13px -apple-system, Segoe UI, Roboto, sans-serif; letter-spacing: .09em; text-transform: uppercase; }
+  .diagram .d-h { fill: var(--text); font: 700 16px -apple-system, Segoe UI, Roboto, sans-serif; }
+  .diagram .d-t { fill: var(--dim); font: 14px ui-monospace, Menlo, monospace; }
+  .diagram .d-n { fill: var(--faint); font: 13px -apple-system, Segoe UI, Roboto, sans-serif; }
   .diagram .d-chip { stroke-width: 1.4; }
-  .diagram .d-chip-t { fill: var(--text); font: 700 13.5px -apple-system, Segoe UI, Roboto, sans-serif; }
+  .diagram .d-chip-t { fill: var(--text); font: 700 15px -apple-system, Segoe UI, Roboto, sans-serif; }
   .diagram .d-edge { stroke: var(--faint); stroke-width: 1.6; fill: none; }
-  .diagram .d-edge-l { fill: var(--faint); font: 600 11.5px -apple-system, Segoe UI, Roboto, sans-serif; }
+  .diagram .d-edge-l { fill: var(--faint); font: 600 13px -apple-system, Segoe UI, Roboto, sans-serif; }
   .diagram .d-seal { fill: rgba(47,212,196,.12); stroke: var(--teal); }
-  .diagram .d-seal-t { fill: var(--teal); font: 700 12.5px -apple-system, Segoe UI, Roboto, sans-serif; }
+  .diagram .d-seal-t { fill: var(--teal); font: 700 14px -apple-system, Segoe UI, Roboto, sans-serif; }
   footer { border-top: 1px solid var(--border); padding: 28px 16px; color: var(--faint); font-size: 13.5px; }
 
   @media (max-width: 820px) {
@@ -123,270 +123,637 @@
     nav.toc { position: static; max-height: none; margin-bottom: 20px; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; background: var(--surface); }
     .grid2 { grid-template-columns: 1fr; }
   }
+
 </style>
 </head>
 <body>
 <header class="hero">
   <div class="wrap">
     <div class="eyebrow">Wirex Mobile SDK</div>
-    <h1>Integration Guide</h1>
-    <p class="lede">One SDK, four sealed surfaces — card <strong>Reveal</strong>, card <strong>Collect</strong>, <strong>3-D&nbsp;Secure</strong> and <strong>Wallet</strong> (Apple&nbsp;Pay&nbsp;/&nbsp;Google&nbsp;Pay) top-up. This guide covers what each surface needs, where the credentials come from, how to style them, and how to run the example that exercises all four.</p>
-    <div class="badges">
-      <span class="badge">Native Android · Kotlin</span>
-      <span class="badge">com.wirexapp.baas:mobile-sdk · Maven</span>
-      <span class="badge ok">Reveal · Collect · 3-D Secure · Wallet</span>
-    </div>
+    <h1>Wirex Mobile SDK for Android — Integration Guide</h1>
+    <p class="lede">One Maven artifact, four sealed surfaces: card <strong>Reveal</strong>, card <strong>Collect</strong>, <strong>3-D Secure</strong> and <strong>Wallet</strong> top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against <code>com.wirexapp.baas:mobile-sdk</code> 0.3.7.</p>
+    <div class="badges"><span class="badge">Native Android · Kotlin</span><span class="badge">com.wirexapp.baas:mobile-sdk 0.3.7 · Maven Central</span><span class="badge ok">Reveal · Collect · 3-D Secure · Wallet</span></div>
   </div>
 </header>
-
 <main class="wrap">
 <div class="layout">
-  <nav class="toc" aria-label="Contents">
-    <p class="t">On this page</p>
-    <a href="#model">The model</a>
-    <a href="#install">Install &amp; configure</a>
-    <a href="#credentials">Credentials</a>
-    <a href="#reveal" class="sub">Reveal</a>
-    <a href="#collect" class="sub">Collect</a>
-    <a href="#threeds" class="sub">3-D Secure</a>
-    <a href="#wallet" class="sub">Wallet</a>
-    <a href="#appearance">Appearance &amp; sizing</a>
-    <a href="#example">Running the example</a>
-    <a href="#endpoints">Backend calls</a>
-  </nav>
-
+  <nav class="toc" aria-label="Contents"><p class="t">On this page</p><a href="#what-the-sdk-does">What the SDK does</a><a href="#requirements-and-install">Requirements and install</a><a href="#credential-provider">Credential provider</a><a href="#reveal-creds">Reveal {creds}</a><a href="#collect-creds">Collect {creds}</a><a href="#3-d-secure-nocreds">3-D Secure {nocreds}</a><a href="#wallet-google-pay-creds-device">Wallet · Google Pay {creds|device}</a><a href="#appearance-strings-and-sizing">Appearance, strings and sizing</a><a href="#logging-timeouts-and-errors">Logging, timeouts and errors</a><a href="#your-backend">Your backend</a><a href="#the-example-app">The example app</a><a href="#patterns-from-a-production-integration">Patterns from a production integration</a><a href="#troubleshooting">Troubleshooting</a></nav>
   <div class="content">
+<section id="what-the-sdk-does">
+<h2><span class="num">00</span>What the SDK does</h2>
+<p>The SDK owns <strong>sealed UI surfaces</strong> and nothing else. A revealed card number, a card the user is typing and a wallet payment token live inside a native view or a Wirex-hosted web frame and <strong>never reach your app code</strong>. The SDK never mints a credential, never stores one, and never moves money on its own.</p>
+<p>Your app supplies two things:</p>
+<ul><li><strong>Authentication.</strong> A <code>WirexCredentialProvider</code> the SDK calls on demand: the user's bearer, a step-up action token when card data or PIN is read, and the user's identity.</li><li><strong>Orchestration.</strong> Your backend prices and executes money-moving calls through the Wirex BaaS API (top-up estimate and execute, the 3-D Secure URL, the wallet checkout token) and ships the wallet provider config. The SDK renders the result and reports events back.</li></ul>
+<table><thead><tr><th>Surface</th><th>Credentials</th><th>What it does</th></tr></thead><tbody><tr><td>Reveal</td><td>yes</td><td>Shows the cardholder their own PAN, expiry, CVV and PIN in sealed native views.</td></tr><tr><td>Collect</td><td>yes</td><td>Captures an external card in a sealed native form and tokenizes it at the acquirer.</td></tr><tr><td>3-D Secure</td><td><strong>no</strong></td><td>Renders the issuer challenge for a card payment and reports the outcome.</td></tr><tr><td>Wallet</td><td>yes</td><td>Embeds the Wirex-hosted Google Pay checkout for a backend-priced top-up.</td></tr></tbody></table>
+<figure class="diagram">
+<svg viewBox="0 0 920 384" role="img" aria-label="Architecture: the partner app provides credentials and orchestration, the SDK renders four sealed surfaces, Wirex hosts the backend; secrets never reach app code.">
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0 0 L10 5 L0 10 z" fill="#7b8296" />
+</marker>
+</defs>
+<!-- panels -->
+<rect class="d-panel" x="20" y="48" width="256" height="268" rx="12" />
+<rect class="d-panel" x="332" y="48" width="256" height="268" rx="12" />
+<rect class="d-panel" x="644" y="48" width="256" height="268" rx="12" />
+<text class="d-title" x="148" y="38" text-anchor="middle">Partner app</text>
+<text class="d-title" x="460" y="38" text-anchor="middle">Wirex Mobile SDK</text>
+<text class="d-title" x="772" y="38" text-anchor="middle">Wirex</text>
 
-  <section id="model">
-    <h2><span class="num">00</span>The model</h2>
-    <p>The SDK owns <em>sealed UI surfaces</em> and nothing else. A revealed PAN, a typed card number, a wallet payment token — none of them reach app code; they live inside a native view or a Wirex-hosted frame. The SDK never mints a credential, never stores one, and (for most surfaces) never decides a transaction.</p>
-    <p>Your app provides two things:</p>
-    <div class="grid2">
-      <div class="card"><h3>Authentication</h3><p class="muted">A bearer for the signed-in user, a step-up signature when an endpoint needs a second factor, and the identity header. The SDK <em>asks</em> for these through a credential provider — it never creates them.</p></div>
-      <div class="card"><h3>Orchestration</h3><p class="muted">Your backend prices and executes the money-moving calls (top-up estimate / execute, the 3DS URL, the wallet estimate). The SDK renders the result and reports events back.</p></div>
-    </div>
-    <figure class="diagram">
-      <svg viewBox="0 0 920 384" role="img" aria-label="Architecture: the partner app provides credentials and orchestration, the SDK renders four sealed surfaces, Wirex hosts the backend; secrets never reach app code.">
-        <defs>
-          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0 0 L10 5 L0 10 z" fill="#7b8296" />
-          </marker>
-        </defs>
-        <!-- panels -->
-        <rect class="d-panel" x="20" y="48" width="256" height="268" rx="12" />
-        <rect class="d-panel" x="332" y="48" width="256" height="268" rx="12" />
-        <rect class="d-panel" x="644" y="48" width="256" height="268" rx="12" />
-        <text class="d-title" x="148" y="38" text-anchor="middle">Partner app</text>
-        <text class="d-title" x="460" y="38" text-anchor="middle">Wirex Mobile SDK</text>
-        <text class="d-title" x="772" y="38" text-anchor="middle">Wirex</text>
+<!-- app inner boxes -->
+<rect class="d-box" x="36" y="68" width="224" height="104" rx="9" />
+<text class="d-h" x="48" y="90">Credential provider</text>
+<text class="d-t" x="48" y="112">getAccessToken()</text>
+<text class="d-t" x="48" y="132">getActionToken(scope)</text>
+<text class="d-t" x="48" y="152">userEmail / userWallet</text>
+<rect class="d-box" x="36" y="188" width="224" height="108" rx="9" />
+<text class="d-h" x="48" y="210">Backend orchestration</text>
+<text class="d-t" x="48" y="232">price &amp; execute top-up</text>
+<text class="d-t" x="48" y="252">checkout token</text>
+<text class="d-t" x="48" y="272">3DS url</text>
 
-        <!-- app inner boxes -->
-        <rect class="d-box" x="36" y="68" width="224" height="104" rx="9" />
-        <text class="d-h" x="48" y="90">Credential provider</text>
-        <text class="d-t" x="48" y="112">getAccessToken()</text>
-        <text class="d-t" x="48" y="132">getActionToken(scope)</text>
-        <text class="d-t" x="48" y="152">userEmail / userWallet</text>
-        <rect class="d-box" x="36" y="188" width="224" height="108" rx="9" />
-        <text class="d-h" x="48" y="210">Backend orchestration</text>
-        <text class="d-t" x="48" y="232">price &amp; execute top-up</text>
-        <text class="d-t" x="48" y="252">checkout token</text>
-        <text class="d-t" x="48" y="272">3DS url</text>
+<!-- SDK surface chips -->
+<rect class="d-chip" x="352" y="72" width="216" height="46" rx="9" fill="rgba(87,83,234,.14)" stroke="#5753ea" />
+<text class="d-chip-t" x="368" y="100">Reveal <tspan class="d-n">· PAN / CVV</tspan></text>
+<rect class="d-chip" x="352" y="128" width="216" height="46" rx="9" fill="rgba(87,83,234,.14)" stroke="#5753ea" />
+<text class="d-chip-t" x="368" y="156">Collect <tspan class="d-n">· tokenize</tspan></text>
+<rect class="d-chip" x="352" y="184" width="216" height="46" rx="9" fill="rgba(47,212,196,.14)" stroke="#2fd4c4" />
+<text class="d-chip-t" x="368" y="212">3-D Secure <tspan class="d-n">· no creds</tspan></text>
+<rect class="d-chip" x="352" y="240" width="216" height="46" rx="9" fill="rgba(87,83,234,.14)" stroke="#5753ea" />
+<text class="d-chip-t" x="368" y="268">Wallet <tspan class="d-n">· Google Pay</tspan></text>
 
-        <!-- SDK surface chips -->
-        <rect class="d-chip" x="352" y="72" width="216" height="46" rx="9" fill="rgba(87,83,234,.14)" stroke="#5753ea" />
-        <text class="d-chip-t" x="368" y="100">Reveal <tspan class="d-n">· PAN / CVV</tspan></text>
-        <rect class="d-chip" x="352" y="128" width="216" height="46" rx="9" fill="rgba(87,83,234,.14)" stroke="#5753ea" />
-        <text class="d-chip-t" x="368" y="156">Collect <tspan class="d-n">· tokenize</tspan></text>
-        <rect class="d-chip" x="352" y="184" width="216" height="46" rx="9" fill="rgba(47,212,196,.14)" stroke="#2fd4c4" />
-        <text class="d-chip-t" x="368" y="212">3-D Secure <tspan class="d-n">· no creds</tspan></text>
-        <rect class="d-chip" x="352" y="240" width="216" height="46" rx="9" fill="rgba(87,83,234,.14)" stroke="#5753ea" />
-        <text class="d-chip-t" x="368" y="268">Wallet <tspan class="d-n">· Apple/Google Pay</tspan></text>
+<!-- Wirex inner boxes -->
+<rect class="d-box" x="660" y="72" width="224" height="46" rx="9" />
+<text class="d-h" x="672" y="100">BaaS API</text>
+<rect class="d-box" x="660" y="128" width="224" height="46" rx="9" />
+<text class="d-h" x="672" y="156">Hosted frames</text>
+<rect class="d-box" x="660" y="184" width="224" height="46" rx="9" />
+<text class="d-h" x="672" y="212">Acquirer</text>
 
-        <!-- Wirex inner boxes -->
-        <rect class="d-box" x="660" y="72" width="224" height="46" rx="9" />
-        <text class="d-h" x="672" y="100">BaaS API</text>
-        <rect class="d-box" x="660" y="128" width="224" height="46" rx="9" />
-        <text class="d-h" x="672" y="156">Hosted frames</text>
-        <rect class="d-box" x="660" y="184" width="224" height="46" rx="9" />
-        <text class="d-h" x="672" y="212">Acquirer</text>
+<!-- edges -->
+<path class="d-edge" d="M276 140 L332 140" marker-end="url(#arr)" />
+<text class="d-edge-l" x="304" y="130" text-anchor="middle">creds</text>
+<path class="d-edge" d="M588 150 L644 150" marker-start="url(#arr)" marker-end="url(#arr)" />
+<text class="d-edge-l" x="616" y="140" text-anchor="middle">calls</text>
 
-        <!-- edges -->
-        <path class="d-edge" d="M276 140 L332 140" marker-end="url(#arr)" />
-        <text class="d-edge-l" x="304" y="130" text-anchor="middle">creds</text>
-        <path class="d-edge" d="M588 150 L644 150" marker-start="url(#arr)" marker-end="url(#arr)" />
-        <text class="d-edge-l" x="616" y="140" text-anchor="middle">calls</text>
-
-        <!-- sealed callout -->
-        <rect class="d-seal" x="20" y="332" width="880" height="38" rx="9" />
-        <text class="d-seal-t" x="460" y="356" text-anchor="middle">Sealed — the PAN, the CVV and the wallet payment token never reach app code</text>
-      </svg>
-      <figcaption>The app supplies credentials + orchestration; the SDK renders sealed surfaces; secrets stay inside native views / hosted frames.</figcaption>
-    </figure>
-
-    <p>So a surface is either <span class="pill creds">needs credentials</span> (Reveal, Collect, Wallet) or <span class="pill nocreds">no credentials</span> (3DS — your backend already authenticated to get the URL).</p>
-  </section>
-
-  <section id="install">
-    <h2><span class="num">01</span>Install &amp; configure</h2>
-    <pre><code><span class="tok-c">// app/build.gradle.kts — one artifact, all four surfaces (minSdk 23+)</span>
+<!-- sealed callout -->
+<rect class="d-seal" x="20" y="332" width="880" height="38" rx="9" />
+<text class="d-seal-t" x="460" y="356" text-anchor="middle">Sealed — the PAN, the CVV and the wallet payment token never reach app code</text>
+</svg>
+<figcaption>The app supplies credentials + orchestration; the SDK renders sealed surfaces; secrets stay inside native views / hosted frames.</figcaption>
+</figure>
+</section>
+<section id="requirements-and-install">
+<h2><span class="num">01</span>Requirements and install</h2>
+<ul><li><strong>Android 6.0 (API 23) or later.</strong> Java 17 bytecode; Kotlin 2.0 or later for a Kotlin host.</li><li><code>mavenCentral()</code> for the SDK and <code>google()</code> for its AndroidX dependency. Any Android project already has both.</li><li>The SDK declares no permissions. <code>INTERNET</code> is your app's to request.</li></ul>
+<pre><code><span class="tok-c">// build.gradle.kts (app)</span>
 dependencies {
-  implementation(<span class="tok-s">"com.wirexapp.baas:mobile-sdk:0.3.7"</span>)
-}
-<span class="tok-c">// add the Maven Central repository that serves it</span></code></pre>
-    <p>Wirex assigns three things per integration. Everything else is your user's data.</p>
-    <table>
-      <tr><th>Value</th><th>What it is</th><th>From</th></tr>
-      <tr><td><code>environment</code></td><td><code>test</code> or <code>production</code> — the SDK resolves the hosts itself (no URLs to pass).</td><td>Wirex</td></tr>
-      <tr><td><code>chainId</code></td><td>The <code>X-Chain-Id</code> every authenticated call carries.</td><td>Wirex</td></tr>
-      <tr><td><code>clientId</code></td><td>Optional <code>?client=</code> on the hosted pages (font-src / chain). </td><td>Wirex</td></tr>
-    </table>
-  </section>
-
-  <section id="credentials">
-    <h2><span class="num">02</span>Credentials</h2>
-    <p>Every credentialed surface reads from one object you implement — the <code>WirexCredentialProvider</code>. The SDK calls it on demand and forwards <strong>exactly one</strong> identity header (sending both <code>X-User-Email</code> and <code>X-User-Wallet</code> is a <code>400</code>).</p>
-    <pre><code><span class="tok-k">class</span> AppCredentials : <span class="tok-f">WirexCredentialProvider</span> {
-  <span class="tok-k">override suspend fun</span> <span class="tok-f">accessToken</span>(): String { <span class="tok-c">/* partner auth → Wirex bearer */</span> }
-  <span class="tok-k">override suspend fun</span> <span class="tok-f">actionToken</span>(scope: WirexActionScope): String { <span class="tok-c">/* CARD_DATA / PIN */</span> }
-  <span class="tok-k">override val</span> userEmail: String? = user.email   <span class="tok-c">// return ONE of the two</span>
-  <span class="tok-k">override val</span> userWallet: String? = <span class="tok-k">null</span>        <span class="tok-c">// the EOA address, if you identify by wallet</span>
+    implementation("com.wirexapp.baas:mobile-sdk:0.3.7")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2") <span class="tok-c">// to call the suspend APIs</span>
 }</code></pre>
-    <table>
-      <tr><th>Credential</th><th>What it is</th><th>How it is minted in production</th></tr>
-      <tr><td><code>getAccessToken</code></td><td>Bearer for the user.</td><td>Your auth → Wirex BaaS. Check expiry and refresh — the SDK sends what it is given and does not retry a 401.</td></tr>
-      <tr><td><code>getActionToken</code></td><td>Step-up for reading card data / PIN.</td><td>The user signs a confirmation message in their wallet; your backend exchanges the signature for a short-lived, one-shot action token.</td></tr>
-      <tr><td><code>userEmail</code> / <code>userWallet</code></td><td>The identity header.</td><td>The signed-in user. Return exactly one.</td></tr>
-    </table>
+<p>The SDK's own dependencies are the Kotlin standard library, <code>kotlinx-coroutines-android</code> and <code>androidx.webkit</code>. Consumer ProGuard/R8 rules are shipped in the artifact, and the AAR merges the <code>&lt;queries&gt;</code> block Google Pay needs on Android 11 and later into your manifest.</p>
+<p>Wirex assigns these values per integration. Everything else is your user's data.</p>
+<table><thead><tr><th>Value</th><th>What it is</th><th>Where it goes</th></tr></thead><tbody><tr><td><code>testMode</code></td><td><code>false</code> = production, <code>true</code> = the Wirex test environment. The SDK holds the hosts; no public API takes a URL.</td><td><code>WirexReveal.create</code>, <code>WirexCollect.create</code>, <code>WirexThreeDS(testMode = …)</code>; the wallet takes the same choice by name: <code>WirexWalletEnvironment.resolve("test")</code> or <code>"production"</code>.</td></tr><tr><td><code>chainId</code></td><td>The chain your integration operates on, sent as <code>X-Chain-Id</code> on every authenticated call. Required for Reveal and Collect.</td><td><code>chainId =</code> on <code>create(...)</code>.</td></tr><tr><td><code>clientId</code></td><td><strong>Optional, wallet only.</strong> A partner id that selects your branding and configuration on the Wirex-hosted checkout pages. Wirex tells you if you have one; most integrations do not. It is not a credential and grants nothing.</td><td><code>WirexWalletConfig(clientId = …)</code>; leave <code>null</code> unless Wirex gave you one.</td></tr></tbody></table>
+</section>
+<section id="credential-provider">
+<h2><span class="num">02</span>Credential provider</h2>
+<p>One object you implement. The SDK calls it when it needs a token, so you never push tokens in advance.</p>
+<pre><code>import com.wirexapp.baas.cards.core.WirexActionScope
+import com.wirexapp.baas.cards.core.WirexCredentialProvider
+import com.wirexapp.baas.cards.core.WirexDeclined
 
-    <!-- ── Reveal ───────────────────────────────────────────────── -->
-    <h3 id="reveal" style="margin-top:34px">Reveal <span class="pill creds">needs credentials</span></h3>
-    <p>Shows a cardholder their own PAN / expiry / CVV (and PIN, for plastic) in sealed native rows. The value is fetched and drawn inside a secure native view; it never reaches JS.</p>
-    <pre><code><span class="tok-k">val</span> reveal = <span class="tok-f">WirexReveal</span>(WirexEnvironment.<span class="tok-f">resolve</span>(name, chainId = chainId),
-                         credentials, WirexLogging(WirexLogLevel.INFO, sink))
-<span class="tok-k">val</span> session = reveal.<span class="tok-f">createSession</span>(cardId, cardholderName = name,
-    fields = listOf(WirexRevealField.CARDHOLDER_NAME, WirexRevealField.PAN,
-                    WirexRevealField.EXPIRY, WirexRevealField.CVV, WirexRevealField.PIN))
-session.<span class="tok-f">onSnapshot</span> { snapshot -&gt; <span class="tok-c">/* IDLE | LOADING | READY | ERROR */</span> }
-session.<span class="tok-f">load</span>()
-<span class="tok-c">// add one WirexRevealFieldView per field — a View that sizes itself</span></code></pre>
-    <div class="note warn"><span class="lbl">Gotcha · sizing</span> The row pins its value area to its natural height. Give it a box <em>shorter</em> than its content and (from 0.3.4 on) it <strong>clips</strong>; older builds collapsed it to height 0 and drew nothing. Honour <code>onNaturalHeight</code> — measure, don't guess. See <a href="#appearance">Appearance &amp; sizing</a>.</div>
-    <div class="note"><span class="lbl">Note · simulator</span> The revealed value is drawn in a secure capture-proof layer that the iOS <em>Simulator</em> renders blank. That is PCI protection working, not a bug. For simulator dev only, <code>dangerouslyDisableScreenProtection: true</code> draws it normally — never ship it on.</div>
+interface HostSession {                       <span class="tok-c">// your own auth layer; shape is up to you</span>
+    suspend fun accessToken(): String
+    suspend fun stepUpToken(purpose: String): String?   <span class="tok-c">// null when the user backs out</span>
+    val email: String?
+}
 
-    <!-- ── Collect ──────────────────────────────────────────────── -->
-    <h3 id="collect" style="margin-top:34px">Collect <span class="pill creds">needs credentials</span></h3>
-    <p>Captures an external card's details in sealed native inputs and <em>tokenises</em> them at the acquirer. JS receives a token, never the PAN/CVV. Your backend then uses the token to fund a top-up.</p>
-    <div class="flow">
-      <span class="n">Collect: user types card</span><span class="arw">→</span>
-      <span class="n">SDK tokenises at acquirer</span><span class="arw">→</span>
-      <span class="n">your backend: estimate</span><span class="arw">→</span>
-      <span class="n">execute → 3DS URL</span>
-    </div>
-    <p class="muted">The card user must be enrolled at the acquirer. Billing details (<code>line1</code>, <code>zipCode</code>, <code>city</code>, <code>country</code>) and a ≥2-char Latin label are required by the tokenizer.</p>
+class AppCredentials(private val session: HostSession) : WirexCredentialProvider {
+    override suspend fun accessToken(): String = session.accessToken()   <span class="tok-c">// read on every request, never cached</span>
 
-    <!-- ── 3DS ──────────────────────────────────────────────────── -->
-    <h3 id="threeds" style="margin-top:34px">3-D Secure <span class="pill nocreds">no credentials</span></h3>
-    <p>Presents the issuer challenge for a card payment. Your backend returns a 3DS URL from the top-up execute; the SDK renders the flow and reports the outcome. It makes no authenticated call and needs no credentials.</p>
-    <pre><code><span class="tok-k">val</span> threeDS = <span class="tok-f">WirexThreeDS</span>(testMode = isTestMode, logging = WirexLogging(WirexLogLevel.INFO, sink))
-<span class="tok-k">val</span> session = threeDS.<span class="tok-f">createSession</span>(url)   <span class="tok-c">// url from the top-up execute</span>
-session.<span class="tok-f">onSnapshot</span> { s -&gt; <span class="tok-c">/* s.state == WirexThreeDSState.SETTLED */</span> }
-session.<span class="tok-f">start</span>()
-<span class="tok-c">// render WirexThreeDSView(activity) full-size</span></code></pre>
-    <table>
-      <tr><th>State</th><th>Status</th></tr>
-      <tr><td><code>idle · loading · challenge · settled</code></td><td><code>completed · pending · failed · unknown</code></td></tr>
-    </table>
-    <div class="note"><span class="lbl">Note</span> <code>pending</code> means the payment is not settled <em>yet</em> — it is not an error. Reconcile the real outcome from your backend's status feed, not from the 3DS status alone.</div>
+    override suspend fun actionToken(scope: WirexActionScope): String {
+        val purpose = when (scope) {
+            WirexActionScope.CARD_DATA -&gt; "card-data"
+            WirexActionScope.PIN -&gt; "pin"
+        }
+        return session.stepUpToken(purpose) ?: throw WirexDeclined()    <span class="tok-c">// the user said no: not an error</span>
+    }
 
-    <!-- ── Wallet ───────────────────────────────────────────────── -->
-    <h3 id="wallet" style="margin-top:34px">Wallet — Apple&nbsp;Pay / Google&nbsp;Pay <span class="pill creds">needs credentials</span> <span class="pill device">real device</span></h3>
-    <p>Embeds the Wirex-hosted checkout frame. It renders a backend-priced quote and the platform wallet button; on tap it presents the native Pay sheet. Apple Pay here runs <em>in the web frame</em> (no app PassKit entitlement needed).</p>
-    <p>Three inputs, all from a backend estimate + your config:</p>
-    <table>
-      <tr><th>Input</th><th>What it is</th><th>From</th></tr>
-      <tr><td><code>quote.estimationId</code></td><td>A priced top-up.</td><td><strong>Your backend</strong> prices the top-up and hands the id to the app.</td></tr>
-      <tr><td><code>quote.sourceAmount</code></td><td>The fiat the sheet charges.</td><td>The priced estimate.</td></tr>
-      <tr><td><code>providerConfig</code></td><td>The wallet provider block (merchant id, networks, URLs), passed <strong>verbatim</strong>.</td><td>Your app config, shipped from your backend.</td></tr>
-    </table>
-    <div class="note"><span class="lbl">Note · who prices</span> Pricing is your backend's job — it owns the user's bearer and (in token mode) also mints the <code>checkoutToken</code>. The SDK never prices; it only consumes an <code>estimationId</code>. The <code>estimationId</code> and the <code>checkoutToken</code> are two independent values — the id is not derived from the token.</div>
-    <pre><code><span class="tok-k">val</span> config = <span class="tok-f">WirexWalletConfig</span>(WirexWalletEnvironment.<span class="tok-f">resolve</span>(name),
-    logging = WirexWalletLogging(WirexWalletLogLevel.INFO, sink), cache = cache)
-<span class="tok-k">val</span> checkout = <span class="tok-f">WirexWalletCheckoutView</span>(context,
-    config = config,
-    quote = WirexWalletQuote(estimationId = id, sourceAmount = WirexWalletMoney(<span class="tok-s">"10.00"</span>, <span class="tok-s">"EUR"</span>)),
-    providerConfig = WirexWalletProviderConfig.<span class="tok-f">fromJson</span>(providerBlock),  <span class="tok-c">// verbatim</span>
-    auth = <span class="tok-k">if</span> (tokenMode) WirexWalletCheckoutAuth(checkoutToken) <span class="tok-k">else null</span>)
-checkout.onEvent = { event -&gt; <span class="tok-c">/* Ready · SheetOpen · Token (legacy) / Executed (token mode) · … */</span> }</code></pre>
-    <div class="note warn"><span class="lbl">Gotcha · availability</span> To know whether to show a Pay button, start a <code>WirexWalletAvailabilityChecker(context, config, providerConfig)</code> and read its <code>onChange</code>. Give it a <em>real</em> provider block (with its <code>probe_url</code>); most emulators have no Google Pay, so it reports unavailable — the real answer there.</div>
-    <p><strong>Legacy vs token mode.</strong> Without <code>auth</code>, the sheet tokenises and emits a <code>token</code> event — your backend executes. With a backend-minted <code>checkoutToken</code>, the frame executes itself and emits <code>executing</code> / <code>executed</code> / <code>executeFailed</code>; nothing crosses JS. The checkout <strong>arms automatically</strong> when it has a valid quote + provider block; a new quote re-arms it.</p>
-    <figure class="diagram">
-      <svg viewBox="0 0 920 300" role="img" aria-label="Wallet top-up flow: backend prices an estimate, the app arms the checkout, the user taps Apple Pay, then either the legacy token path or token mode executes, and the result settles by backend status.">
-        <defs>
-          <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0 0 L10 5 L0 10 z" fill="#7b8296" />
-          </marker>
-        </defs>
-        <!-- row 1 -->
-        <rect class="d-box" x="20" y="40" width="270" height="62" rx="9" />
-        <text class="d-h" x="34" y="64"><tspan fill="#7c79ff">1 · Backend</tspan></text>
-        <text class="d-t" x="34" y="86">price top-up → estimationId</text>
-        <rect class="d-box" x="325" y="40" width="270" height="62" rx="9" />
-        <text class="d-h" x="339" y="64"><tspan fill="#7c79ff">2 · App</tspan></text>
-        <text class="d-t" x="339" y="86">arm (quote + providerConfig)</text>
-        <rect class="d-box" x="630" y="40" width="270" height="62" rx="9" />
-        <text class="d-h" x="644" y="64"><tspan fill="#7c79ff">3 · User</tspan></text>
-        <text class="d-t" x="644" y="86">tap Pay → native sheet</text>
-        <path class="d-edge" d="M290 71 L325 71" marker-end="url(#arr2)" />
-        <path class="d-edge" d="M595 71 L630 71" marker-end="url(#arr2)" />
+    override val userEmail: String? get() = session.email               <span class="tok-c">// return ONE of email / wallet</span>
+    override val userWallet: String? get() = null
+}</code></pre>
+<ul><li><strong>Exactly one identity.</strong> Return either <code>userEmail</code> or <code>userWallet</code>; a <code>null</code> value is simply not sent. Sending both is a backend <code>400</code>.</li><li><strong>The SDK sends the bearer as-is and does not retry a 401.</strong> Check expiry in <code>accessToken()</code> and refresh before returning.</li><li><code>actionToken(scope)</code> is called once per scope per operation: <code>CARD_DATA</code> covers PAN, expiry and CVV; <code>PIN</code> covers the PIN. Throw <code>WirexDeclined()</code> when the user backs out; the SDK stops and reports it as declined.</li><li>Values are read <strong>per call</strong>, so a refreshed token takes effect on the next SDK request.</li></ul>
+</section>
+<section id="reveal-creds">
+<h2><span class="num">03</span>Reveal {creds}</h2>
+<p>Shows the cardholder their own card details. Each field is a <code>WirexRevealFieldView</code> you add to your layout; the SDK draws the value inside it.</p>
+<pre><code>import android.app.Activity
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.widget.LinearLayout
+import com.wirexapp.baas.cards.core.WirexCredentialProvider
+import com.wirexapp.baas.cards.core.WirexDeclined
+import com.wirexapp.baas.cards.reveal.WirexReveal
+import com.wirexapp.baas.cards.reveal.WirexRevealField
+import com.wirexapp.baas.cards.reveal.WirexRevealState
+import com.wirexapp.baas.cards.reveal.WirexRevealStrings
+import com.wirexapp.baas.cards.reveal.ui.WirexRevealFieldView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-        <!-- branch down from node 3 -->
-        <path class="d-edge" d="M765 102 L765 126 L460 126 L460 150" marker-end="url(#arr2)" />
-        <path class="d-edge" d="M765 126 L765 150" marker-end="url(#arr2)" />
+class RevealScreen(private val activity: Activity, credentials: WirexCredentialProvider) {
+    private val scope = CoroutineScope(Dispatchers.Main)
+    private val reveal: WirexReveal = WirexReveal.create(credentials = credentials, testMode = true, chainId = "&lt;chain id&gt;")
+        ?: error("this build has no endpoints for that environment")
 
-        <!-- row 2: two modes -->
-        <rect class="d-box" x="325" y="150" width="270" height="62" rx="9" />
-        <text class="d-h" x="339" y="174"><tspan fill="#2fd4c4">4a · Legacy</tspan></text>
-        <text class="d-t" x="339" y="196">onToken → backend execute</text>
-        <rect class="d-box" x="630" y="150" width="270" height="62" rx="9" />
-        <text class="d-h" x="644" y="174"><tspan fill="#2fd4c4">4b · Token mode</tspan></text>
-        <text class="d-t" x="644" y="196">frame executes (checkoutToken)</text>
+    fun show(container: LinearLayout, cardId: String) {
+        val fields = listOf(WirexRevealField.PAN, WirexRevealField.EXPIRY, WirexRevealField.CVV, WirexRevealField.PIN)
+        val session = reveal.session(cardId = cardId, fields = fields, cardholderName = "JANE DOE")
+        val strings = WirexRevealStrings(fieldLabels = mapOf(WirexRevealField.PAN to "Card number"))
 
-        <!-- converge to settle -->
-        <path class="d-edge" d="M460 212 L460 238 L612 238 L612 262" marker-end="url(#arr2)" />
-        <path class="d-edge" d="M765 212 L765 238 L612 238" />
-        <rect class="d-seal" x="462" y="262" width="300" height="34" rx="9" />
-        <text class="d-seal-t" x="612" y="284" text-anchor="middle">5 · settle by backend status</text>
-      </svg>
-      <figcaption>Wallet top-up — pricing and execution are the backend's; the SDK arms the checkout and reports the outcome.</figcaption>
-    </figure>
+        for (field in fields) {
+            val row = WirexRevealFieldView(activity)
+            row.bind(session, field, strings = strings)
+            container.addView(row, MATCH_PARENT, WRAP_CONTENT)
+        }
 
-    <div class="note"><span class="lbl">Note · device</span> The Pay sheet cannot present on the iOS Simulator (no Secure Element). The checkout still arms; only the sheet needs a real device with a provisioned card.</div>
-  </section>
+        session.onChange = { snapshot -&gt;                         <span class="tok-c">// any thread: hop to main before touching views</span>
+            activity.runOnUiThread {
+                when (val state = snapshot.state) {
+                    WirexRevealState.Idle, WirexRevealState.Loading, WirexRevealState.Ready -&gt; Unit
+                    is WirexRevealState.Failed -&gt; state.error.code
+                }
+            }
+        }
 
-  <section id="appearance">
-    <h2><span class="num">03</span>Appearance &amp; sizing</h2>
-    <p>Each surface takes an appearance object (theme mode + tokens) and a strings object — the SDK ships <em>no</em> copy, so the host supplies every word it draws. Colours, radii and fonts are tokens you pass; the native view renders them.</p>
-    <h3>The sizing contract</h3>
-    <p>A native field cannot be sized from JS. The field view <em>measures its own content</em> and reports it through <code>onNaturalHeight</code>; apply that height to the row rather than hardcoding one. If a host ignores it and pins a box too small, the row clips its value (0.3.4+) instead of vanishing — but the right pattern is to measure.</p>
-    <div class="note tip"><span class="lbl">Tip</span> Full token lists live in the SDK's README (“Customization &amp; sizing”). The same contract holds on iOS, Android and Flutter.</div>
-  </section>
+        scope.launch {
+            try { session.load() } catch (_: WirexDeclined) { /* the user declined the step-up */ }
+        }
+    }
+}</code></pre>
+<ul><li><code>fields</code> are <code>WirexRevealField</code> values: <code>CARDHOLDER_NAME</code>, <code>PAN</code>, <code>EXPIRY</code>, <code>CVV</code>, <code>PIN</code>. Omit <code>PIN</code> for a virtual card. <code>cardholderName</code> is supplied by you and never fetched.</li><li><code>PAN</code>, <code>CVV</code> and <code>PIN</code> start <strong>masked</strong>. <code>row.reveal()</code> unmasks, <code>row.mask()</code> masks again, <code>isMasked</code> reads the state. <code>reveal()</code> is refused (<code>onRevealRefused</code>) when screenshot protection is not active. Rows re-mask when detached (<code>masksWhenDetached</code>).</li><li>Session state is <code>WirexRevealState</code>: <code>Idle</code>, <code>Loading</code>, <code>Ready</code>, <code>Failed(error)</code>. Per-field results are <code>snapshot.outcome(field)</code>, <code>snapshot.loaded</code> and <code>snapshot.failed</code>, so one failed field does not hide the others.</li><li><code>load()</code> is a <code>suspend</code> function and idempotent. Request failures are reported in the snapshot; it throws only <code>WirexDeclined</code>. Values are wiped 120 seconds after the first load; <code>session.clear()</code> wipes them earlier.</li><li><code>row.onCopy</code> fires when the user copies a copyable field. <code>row.release()</code> drops the observer when the view goes away.</li></ul>
+<div class="note warn"><span class="lbl">Gotcha · sizing</span> A row draws its value at its natural height. Use <code>WRAP_CONTENT</code> or <code>row.naturalHeightPx(widthPx)</code>; a box shorter than the content clips the value.</div>
+<div class="note"><span class="lbl">Note · screenshots</span> The SDK sets <code>FLAG_SECURE</code> on the hosting window while a sealed view is attached and refuses to unmask without it. For automated UI tests only, pass <code>dangerouslyDisableScreenProtection = true</code> to <code>create(...)</code>. Never ship it on.</div>
+</section>
+<section id="collect-creds">
+<h2><span class="num">04</span>Collect {creds}</h2>
+<p>Captures a card the user is entering. The form is one view; your app receives a token, never the PAN or CVV.</p>
+<div class="flow"><span class="n">Collect: user types the card</span><span class="arw">→</span><span class="n">SDK tokenizes at the acquirer</span><span class="arw">→</span><span class="n">your backend: estimate</span><span class="arw">→</span><span class="n">execute → 3-D Secure URL</span></div>
+<pre><code>import android.app.Activity
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.widget.FrameLayout
+import com.wirexapp.baas.cards.collect.WirexBillingDetails
+import com.wirexapp.baas.cards.collect.WirexCollect
+import com.wirexapp.baas.cards.collect.WirexCollectProfile
+import com.wirexapp.baas.cards.collect.WirexTopUpTokenizeParams
+import com.wirexapp.baas.cards.collect.ui.WirexCollectForm
+import com.wirexapp.baas.cards.core.WirexCredentialProvider
+import com.wirexapp.baas.cards.core.errors.WirexError
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-  <section id="example">
-    <h2><span class="num">04</span>Running the example</h2>
-    <p>The SDK ships a runnable example that exercises all four surfaces against your own data — nothing is hard-coded. Enter your integration parameters and credentials (bearer, identity, card id, chain, provider config) in its <strong>Config</strong> tab; every screen reads them live, so one build covers every surface with no rebuild. The field set is the same across the iOS, Android and Flutter examples.</p>
-  </section>
+class CollectScreen(private val activity: Activity, credentials: WirexCredentialProvider) {
+    private val scope = CoroutineScope(Dispatchers.Main)
+    private val collect: WirexCollect = WirexCollect.create(credentials = credentials, testMode = true, chainId = "&lt;chain id&gt;")
+        ?: error("this build has no endpoints for that environment")
+    private lateinit var form: WirexCollectForm
 
-  <section id="endpoints">
-    <h2><span class="num">05</span>Backend calls</h2>
-    <p>Your backend performs the money-moving work with the credentials Wirex issues for your integration — pricing a top-up, executing it, minting a checkout token (token mode), and serving the wallet provider config. The SDK consumes their results; it makes none of these calls itself.</p>
-    <p class="muted">Authenticated calls carry <code>Authorization: Bearer</code>, <code>X-Chain-Id</code> and one identity header (<code>X-User-Email</code> or <code>X-User-Wallet</code>, never both). For the exact paths, request and response shapes, see the Wirex BaaS API reference Wirex provides with your integration.</p>
-  </section>
+    fun mount(holder: FrameLayout) {
+        form = collect.form(context = activity, profile = WirexCollectProfile.TOPUP)
+        form.onChange = { state -&gt; state.isComplete /* enable your Pay button on this */ }
+        holder.addView(form, MATCH_PARENT, WRAP_CONTENT)
+    }
+
+    fun tokenize() {
+        scope.launch {
+            try {
+                val token = form.tokenizeTopUp(WirexTopUpTokenizeParams(
+                    billingDetails = WirexBillingDetails(line1 = "1 Main St", zipCode = "SW1A 1AA", city = "London", country = "GB"),
+                    label = "My card",
+                ))
+                token.cardId; token.brand; token.bin; token.last4; token.expiryMonth; token.expiryYear
+            } catch (error: WirexError) {
+                error.code; error.retryable; error.reason
+            }
+        }
+    }
+}</code></pre>
+<ul><li>Profiles: <code>TOPUP</code> (fund a top-up with this card) and <code>OCT_DESTINATION</code> (register a payout card via <code>form.tokenizeOctDestination(WirexOctTokenizeParams(cardLabel, isSaved, isThirdParty))</code>, which returns <code>externalCardId</code>).</li><li><code>WirexCollectState</code> carries <code>isComplete</code>, <code>brand</code> (<code>VISA</code>, <code>MASTERCARD</code>, <code>UNKNOWN</code>) and per-field <code>fields</code> with <code>isValid</code> and <code>error</code> (<code>INCOMPLETE</code>, <code>INVALID</code>, <code>EXPIRED</code>).</li><li>Billing details (<code>line1</code>, <code>zipCode</code>, <code>city</code>, <code>country</code>) are required by the tokenizer; <code>line2</code> and <code>state</code> are optional. The <strong>card user must be enrolled at the acquirer</strong>, otherwise tokenization fails.</li><li>After tokenizing, <strong>your backend</strong> prices and executes the top-up with the <code>cardId</code>; a card payment may return a 3-D Secure URL for the next section.</li><li><code>form.errorLine</code> controls where validation messages render (<code>HIDDEN</code>, <code>RESERVED</code>, <code>ANIMATED</code>); <code>form.row(field)</code> returns a single sealed row if you lay fields out yourself; <code>form.naturalHeightPx(widthPx)</code> measures the form.</li></ul>
+</section>
+<section id="3-d-secure-nocreds">
+<h2><span class="num">05</span>3-D Secure {nocreds}</h2>
+<p>Presents the issuer challenge for a card payment. Your backend obtains the orchestrator URL from the top-up execute response; the SDK renders the flow and reports the outcome. No credentials are needed.</p>
+<pre><code>import android.app.Activity
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.widget.FrameLayout
+import com.wirexapp.baas.cards.threeds.WirexThreeDS
+import com.wirexapp.baas.cards.threeds.WirexThreeDSSession
+import com.wirexapp.baas.cards.threeds.WirexThreeDSState
+import com.wirexapp.baas.cards.threeds.ui.WirexThreeDSView
+
+class ThreeDSScreen(private val activity: Activity) {
+    private val threeDS = WirexThreeDS(testMode = true)
+    private val challengeView = WirexThreeDSView(activity)
+    private var session: WirexThreeDSSession? = null
+
+    fun mount(root: FrameLayout) = root.addView(challengeView, MATCH_PARENT, MATCH_PARENT)   <span class="tok-c">// full-size overlay</span>
+
+    fun start(orchestratorUrl: String) {
+        val next = threeDS.session(orchestratorUrl)             <span class="tok-c">// never throws; a refused origin settles at once</span>
+        session = next
+        next.onChange = { snapshot -&gt;
+            if (snapshot.state == WirexThreeDSState.SETTLED) {
+                val outcome = snapshot.outcome                   <span class="tok-c">// status: COMPLETED · PENDING · FAILED · UNKNOWN</span>
+                outcome?.status; outcome?.error?.code
+            }
+        }
+        challengeView.bind(next)
+        next.start(activity)
+    }
+
+    fun release() {
+        challengeView.unbind()
+        session?.destroy()
+    }
+}</code></pre>
+<table><thead><tr><th>State (<code>WirexThreeDSState</code>)</th><th>Outcome status (<code>WirexThreeDSStatus</code>)</th><th>Outcome error code</th></tr></thead><tbody><tr><td><code>IDLE</code> · <code>LOADING</code> · <code>CHALLENGE</code> · <code>SETTLED</code></td><td><code>COMPLETED</code> · <code>PENDING</code> · <code>FAILED</code> · <code>UNKNOWN</code></td><td><code>ORIGIN_REFUSED</code> · <code>DECLINED</code> · <code>UNAVAILABLE</code></td></tr></tbody></table>
+<ul><li>The view stays invisible until the challenge is shown, applies <code>FLAG_SECURE</code> while it is visible, and includes a close control that calls <code>session.cancel()</code> (settles with <code>UNKNOWN</code>).</li><li><code>onChange</code> is invoked immediately with the current snapshot when set.</li></ul>
+<div class="note"><span class="lbl">Note</span> <code>PENDING</code> means the payment is not settled <em>yet</em>; it is not an error. Reconcile the real result from your backend's status feed, not from the 3-D Secure status alone.</div>
+</section>
+<section id="wallet-google-pay-creds-device">
+<h2><span class="num">06</span>Wallet · Google Pay {creds|device}</h2>
+<p>Embeds the Wirex-hosted checkout for a top-up your backend has already priced. The frame renders the quote and the Google Pay button; the Pay sheet is native.</p>
+<p>Three inputs, all from your backend and your app config:</p>
+<table><thead><tr><th>Input</th><th>What it is</th></tr></thead><tbody><tr><td><code>quote</code></td><td><code>estimationId</code> + <code>sourceAmount</code> from your backend's top-up estimate. Short TTL; a new estimate re-arms the checkout.</td></tr><tr><td><code>providerConfig</code></td><td>The wallet provider block from your app config, passed <strong>verbatim</strong> (<code>WirexWalletProviderConfig.fromJson(text)</code>).</td></tr><tr><td><code>auth</code></td><td>Token mode: a <code>checkoutToken</code> your backend minted for this top-up flow. Omit it for legacy mode.</td></tr></tbody></table>
+<figure class="diagram">
+<svg viewBox="0 0 920 300" role="img" aria-label="Wallet top-up flow: backend prices an estimate, the app arms the checkout, the user taps the Pay button, then either the legacy token path or token mode executes, and the result settles by backend status.">
+<defs>
+<marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0 0 L10 5 L0 10 z" fill="#7b8296" />
+</marker>
+</defs>
+<!-- row 1 -->
+<rect class="d-box" x="20" y="40" width="270" height="62" rx="9" />
+<text class="d-h" x="34" y="64"><tspan fill="#7c79ff">1 · Backend</tspan></text>
+<text class="d-t" x="34" y="86">price top-up → estimationId</text>
+<rect class="d-box" x="325" y="40" width="270" height="62" rx="9" />
+<text class="d-h" x="339" y="64"><tspan fill="#7c79ff">2 · App</tspan></text>
+<text class="d-t" x="339" y="86">arm (quote + providerConfig)</text>
+<rect class="d-box" x="630" y="40" width="270" height="62" rx="9" />
+<text class="d-h" x="644" y="64"><tspan fill="#7c79ff">3 · User</tspan></text>
+<text class="d-t" x="644" y="86">tap Pay → native sheet</text>
+<path class="d-edge" d="M290 71 L325 71" marker-end="url(#arr2)" />
+<path class="d-edge" d="M595 71 L630 71" marker-end="url(#arr2)" />
+
+<!-- branch down from node 3 -->
+<path class="d-edge" d="M765 102 L765 126 L460 126 L460 150" marker-end="url(#arr2)" />
+<path class="d-edge" d="M765 126 L765 150" marker-end="url(#arr2)" />
+
+<!-- row 2: two modes -->
+<rect class="d-box" x="325" y="150" width="270" height="62" rx="9" />
+<text class="d-h" x="339" y="174"><tspan fill="#2fd4c4">4a · Legacy</tspan></text>
+<text class="d-t" x="339" y="196">onToken → backend execute</text>
+<rect class="d-box" x="630" y="150" width="270" height="62" rx="9" />
+<text class="d-h" x="644" y="174"><tspan fill="#2fd4c4">4b · Token mode</tspan></text>
+<text class="d-t" x="644" y="196">frame executes (checkoutToken)</text>
+
+<!-- converge to settle -->
+<path class="d-edge" d="M460 212 L460 238 L612 238 L612 262" marker-end="url(#arr2)" />
+<path class="d-edge" d="M765 212 L765 238 L612 238" />
+<rect class="d-seal" x="462" y="262" width="300" height="34" rx="9" />
+<text class="d-seal-t" x="612" y="284" text-anchor="middle">5 · settle by backend status</text>
+</svg>
+<figcaption>Wallet top-up — pricing and execution are the backend's; the SDK arms the checkout and reports the outcome.</figcaption>
+</figure>
+<pre><code>import android.app.Activity
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.widget.FrameLayout
+import com.wirexapp.wallet.topup.WirexWalletAvailabilityChecker
+import com.wirexapp.wallet.topup.WirexWalletCheckoutView
+import com.wirexapp.wallet.topup.WirexWalletConfig
+import com.wirexapp.wallet.topup.WirexWalletEnvironment
+import com.wirexapp.wallet.topup.model.WirexWalletCheckoutAuth
+import com.wirexapp.wallet.topup.model.WirexWalletCheckoutEvent
+import com.wirexapp.wallet.topup.model.WirexWalletMoney
+import com.wirexapp.wallet.topup.model.WirexWalletProviderConfig
+import com.wirexapp.wallet.topup.model.WirexWalletQuote
+
+class WalletScreen(private val activity: Activity) {
+    private val config = WirexWalletConfig(environment = WirexWalletEnvironment.resolve("test"))   <span class="tok-c">// clientId optional</span>
+    private var checker: WirexWalletAvailabilityChecker? = null
+    private var checkout: WirexWalletCheckoutView? = null
+
+    <span class="tok-c">// 1. Availability: decide whether to show a Pay button at all.</span>
+    fun checkAvailability(providerConfig: WirexWalletProviderConfig) {
+        val fresh = WirexWalletAvailabilityChecker(activity, config, providerConfig)
+        fresh.onChange = { availability -&gt; availability.googlePay }
+        fresh.start()
+        checker = fresh
+    }
+
+    <span class="tok-c">// 2. Checkout: arm it with a backend-priced quote and the provider block.</span>
+    fun mount(container: FrameLayout, providerConfigJson: String, checkoutToken: String) {
+        val view = WirexWalletCheckoutView(
+            context = activity,
+            config = config,
+            quote = WirexWalletQuote(estimationId = "&lt;estimation id&gt;", sourceAmount = WirexWalletMoney("10.00", "EUR")),
+            providerConfig = WirexWalletProviderConfig.fromJson(providerConfigJson),
+            auth = WirexWalletCheckoutAuth(checkoutToken = checkoutToken),
+        )
+        view.onEvent = ::onEvent
+        container.addView(view, MATCH_PARENT, MATCH_PARENT)
+        checkout = view
+    }
+
+    private fun onEvent(event: WirexWalletCheckoutEvent) {
+        when (event) {
+            WirexWalletCheckoutEvent.Ready, WirexWalletCheckoutEvent.SheetOpen,
+            WirexWalletCheckoutEvent.Cancelled, WirexWalletCheckoutEvent.Executing -&gt; Unit
+            is WirexWalletCheckoutEvent.NaturalHeight -&gt; event.height          <span class="tok-c">// CSS px: size the container</span>
+            is WirexWalletCheckoutEvent.AttemptFailed -&gt; event.reason
+            WirexWalletCheckoutEvent.EstimationExpired -&gt; Unit                  <span class="tok-c">// re-price on your backend, then rearm(...)</span>
+            is WirexWalletCheckoutEvent.Token -&gt; event.token.walletPaymentToken <span class="tok-c">// legacy mode: your backend executes</span>
+            is WirexWalletCheckoutEvent.Executed -&gt; event.result.status
+            is WirexWalletCheckoutEvent.ExecuteFailed -&gt; event.error.reason
+            is WirexWalletCheckoutEvent.Failed -&gt; event.error.kind
+            is WirexWalletCheckoutEvent.Diagnostic, is WirexWalletCheckoutEvent.Debug -&gt; Unit
+        }
+    }
+
+    fun newQuote(quote: WirexWalletQuote, providerConfig: WirexWalletProviderConfig, checkoutToken: String) {
+        checkout?.rearm(quote, providerConfig, auth = WirexWalletCheckoutAuth(checkoutToken = checkoutToken))
+    }
+
+    fun release() {
+        checker?.stop()
+        checkout?.destroy()
+    }
+}</code></pre>
+<ul><li><strong>Legacy vs token mode.</strong> Without <code>auth</code>, the sheet tokenizes and the checkout emits <code>Token</code>; your backend executes the top-up with it. With a backend-minted <code>checkoutToken</code>, the frame executes itself and emits <code>Executing</code> → <code>Executed</code> or <code>ExecuteFailed</code>; nothing sensitive reaches app code. The mode is fixed when the view is created.</li><li><code>estimationId</code> and <code>checkoutToken</code> are two independent values from two backend calls; the id is not derived from the token.</li><li>Events: <code>Ready</code>, <code>NaturalHeight</code>, <code>SheetOpen</code>, <code>Cancelled</code>, <code>AttemptFailed</code>, <code>EstimationExpired</code>, <code>Token</code>, <code>Executing</code>, <code>Executed</code>, <code>ExecuteFailed</code>, <code>Failed</code> (terminal), <code>Diagnostic</code>, <code>Debug</code> (only with <code>debug = true</code>).</li><li><code>WirexWalletMoney</code> takes the amount as a decimal string or a number. <code>WirexWalletQuote</code> also accepts optional <code>destinationAmount</code>, <code>fee</code>, <code>rate</code> and <code>expiresAtMs</code>.</li><li><code>providerConfig</code> is passed verbatim. Do not re-case keys or add defaults; an absent <code>google_pay</code> key means "do not offer Google Pay". <code>WirexWalletProviderConfigResolver.resolve(topup, provider)</code> picks the block out of your app config.</li><li><code>WirexWalletConfig(cache = …)</code> takes an optional key-value store (<code>WirexWalletAvailabilityCache</code>) so the availability answer survives relaunch. The SDK writes one key with two booleans.</li><li>Standalone launch in a Chrome Custom Tab: <code>WirexWalletLaunch.buildUrl(config, WirexWalletLaunchParams(checkoutToken, quote, provider, returnUrl))</code> builds the URL your app opens; <code>WirexWalletReturnLink.matches(url, returnUrl)</code> and <code>parse(url)</code> read the result on return. The SDK opens no browser itself.</li></ul>
+<div class="note warn"><span class="lbl">Gotcha · availability</span> Start a <code>WirexWalletAvailabilityChecker</code> with the real provider block before you show a Pay button; <code>onChange</code> reports the native Google Pay answer, and below the <code>min_webview_version</code> / <code>min_play_services_version</code> floors it answers unavailable without loading anything. Test on a device with Google Pay set up.</div>
+</section>
+<section id="appearance-strings-and-sizing">
+<h2><span class="num">07</span>Appearance, strings and sizing</h2>
+<p>Every surface takes an appearance object and a strings object. The SDK ships no copy, so your app supplies every word the views draw.</p>
+<pre><code>import android.graphics.Color
+import com.wirexapp.baas.cards.collect.WirexCollectField
+import com.wirexapp.baas.cards.collect.WirexCollectFieldError
+import com.wirexapp.baas.cards.collect.WirexCollectStrings
+import com.wirexapp.baas.cards.collect.ui.WirexCollectForm
+import com.wirexapp.baas.cards.core.appearance.WirexAppearance
+import com.wirexapp.baas.cards.core.appearance.WirexThemeMode
+import com.wirexapp.baas.cards.reveal.WirexRevealField
+import com.wirexapp.baas.cards.reveal.WirexRevealStrings
+import com.wirexapp.baas.cards.reveal.ui.WirexRevealFieldView
+import com.wirexapp.wallet.topup.generated.SpecWalletGooglePayButtonColor
+import com.wirexapp.wallet.topup.generated.SpecWalletGooglePayButtonType
+import com.wirexapp.wallet.topup.model.WirexWalletAppearance
+import com.wirexapp.wallet.topup.model.WirexWalletBranding
+import com.wirexapp.wallet.topup.model.WirexWalletButtons
+import com.wirexapp.wallet.topup.model.WirexWalletLogo
+
+object Styling {
+    val appearance = WirexAppearance(
+        mode = WirexThemeMode.DARK,
+        colorTextOverride = Color.WHITE,
+        colorFocusOverride = Color.parseColor("#5753EA"),
+        fontSizeBaseDp = 17f,
+        borderRadiusDp = 12f,
+    )
+    val revealStrings = WirexRevealStrings(
+        fieldLabels = mapOf(WirexRevealField.PAN to "Card number", WirexRevealField.CVV to "CVV"),
+        copy = "Copy", copied = "Copied",
+    )
+    val collectStrings = WirexCollectStrings(
+        fieldLabels = mapOf(WirexCollectField.NUMBER to "Card number"),
+        error = { field, reason -&gt;
+            when (reason) {
+                WirexCollectFieldError.INCOMPLETE -&gt; "${field.defaultLabel} is incomplete"
+                WirexCollectFieldError.INVALID -&gt; "Check the ${field.defaultLabel.lowercase()}"
+                WirexCollectFieldError.EXPIRED -&gt; "This card has expired"
+            }
+        },
+    )
+    val walletAppearance = WirexWalletAppearance(theme = WirexWalletAppearance.Theme.DARK, variables = mapOf("--wx-accent" to "#5753EA"))
+    val walletButtons = WirexWalletButtons(googlePay = WirexWalletButtons.GooglePay(color = SpecWalletGooglePayButtonColor.BLACK, type = SpecWalletGooglePayButtonType.PAY))
+    val walletBranding = WirexWalletBranding(logo = WirexWalletLogo.Hidden, processingDisclosurePartnerName = "Acme")
+
+    fun apply(row: WirexRevealFieldView, form: WirexCollectForm) {
+        row.setAppearance(appearance); row.setStrings(revealStrings)
+        form.apply(appearance); form.apply(collectStrings)
+    }
+}</code></pre>
+<ul><li><code>WirexAppearance</code> is a data class with every parameter defaulted: <code>mode</code> (<code>LIGHT</code> / <code>DARK</code>), ARGB colour overrides (<code>colorTextOverride</code>, <code>colorLabelOverride</code>, <code>colorPlaceholderOverride</code>, <code>colorErrorOverride</code>, <code>colorFocusOverride</code>, <code>colorBackgroundOverride</code>, <code>colorBorderOverride</code>, <code>surfaceColorOverride</code>), typography (<code>typeface</code>, <code>fontSizeBaseDp</code>, <code>fontSizeLabelDp</code>, <code>lineHeightBaseDp</code>, <code>lineHeightLabelDp</code>, <code>fontWeightBaseBold</code>, <code>fontWeightLabelBold</code>), geometry in dp (<code>borderRadiusDp</code>, <code>borderWidthDp</code>, <code>spacingUnitDp</code>, <code>paddingHorizontalDp</code>, <code>paddingVerticalDp</code>, <code>spacingLabelDp</code>, <code>spacingErrorDp</code>, <code>iconSizeDp</code>, <code>controlMinHeightDp</code>). The same object styles Reveal, Collect and 3-D Secure. <code>WirexAppearanceTokens.appearance(tokens, mode)</code> builds one from a token map with the web SDK's names.</li><li>Strings: <code>WirexRevealStrings</code>, <code>WirexCollectStrings</code> (labels, placeholders, an <code>error</code> lambda per field and a <code>brandName</code> lambda; <code>fromJson</code> accepts the web SDK's JSON shape) and <code>WirexThreeDSStrings(title, close, loading)</code>. Icons are optional <code>Drawable</code>s: <code>WirexRevealIcons(copy, copied)</code>, <code>WirexCollectIcons(visa, mastercard)</code>, <code>WirexThreeDSIcons(close)</code>.</li><li>Wallet: <code>WirexWalletAppearance(theme, variables)</code> passes CSS variables to the frame; <code>WirexWalletBranding(logo, processingDisclosurePartnerName, privacyUrl)</code>; <code>WirexWalletButtons</code> sets the Google Pay button <code>color</code> (<code>BLACK</code>, <code>WHITE</code>) and <code>type</code> (<code>PLAIN</code>, <code>PAY</code>, <code>BUY</code>); <code>strings</code> is a <code>Map&lt;SpecWalletStringKey, String&gt;</code> overriding the 11 labels of the checkout.</li><li><strong>Sizing.</strong> <code>WirexRevealFieldView.naturalHeightPx(widthPx)</code> and <code>WirexCollectForm.naturalHeightPx(widthPx)</code> measure the content; the wallet emits a <code>NaturalHeight</code> event. Use <code>WRAP_CONTENT</code> or apply those heights instead of hardcoding them.</li><li><strong>Screenshot protection.</strong> <code>FLAG_SECURE</code> is acquired on the hosting window automatically while a sealed view is attached. Pass the window explicitly with <code>secureWindow(window)</code> when the view lives in a <code>Dialog</code> or <code>PopupWindow</code> the SDK cannot resolve.</li></ul>
+</section>
+<section id="logging-timeouts-and-errors">
+<h2><span class="num">08</span>Logging, timeouts and errors</h2>
+<pre><code>import com.wirexapp.baas.cards.core.WirexCredentialProvider
+import com.wirexapp.baas.cards.core.WirexEnvironment
+import com.wirexapp.baas.cards.core.WirexEnvironmentUnavailable
+import com.wirexapp.baas.cards.core.errors.WirexError
+import com.wirexapp.baas.cards.core.logging.WirexLogLevel
+import com.wirexapp.baas.cards.core.logging.logcatLogging
+import com.wirexapp.baas.cards.core.net.WirexTimeouts
+import com.wirexapp.baas.cards.reveal.WirexReveal
+import com.wirexapp.wallet.topup.WirexWalletLogLevel
+import com.wirexapp.wallet.topup.WirexWalletLogging
+
+object Diagnostics {
+    fun configured(credentials: WirexCredentialProvider): WirexReveal? = WirexReveal.create(
+        credentials = credentials, chainId = "&lt;chain id&gt;",
+        logging = logcatLogging(WirexLogLevel.INFO),                    <span class="tok-c">// default WirexLogging.DISABLED; WirexLogging.DEBUG for everything</span>
+        timeouts = WirexTimeouts(connectMillis = 10_000, readMillis = 20_000),
+    )
+    val walletLogging = com.wirexapp.wallet.topup.logcatLogging(WirexWalletLogLevel.INFO)   <span class="tok-c">// separate types for the wallet</span>
+    val walletOff = WirexWalletLogging.DISABLED
+
+    fun describe(error: WirexError): String = when (error.code) {
+        WirexError.Code.UNAUTHORIZED -&gt; "refresh the access token"
+        WirexError.Code.ACTION_REQUIRED -&gt; "obtain a fresh action token and retry"
+        WirexError.Code.UPDATE_REQUIRED -&gt; "ship a newer SDK build"
+        WirexError.Code.INVALID_INPUT -&gt; when (error.reason) {
+            WirexError.Reason.CARD_ALREADY_LINKED -&gt; "enter a different card"
+            WirexError.Reason.CARD_LIMIT_REACHED -&gt; "remove a card first"
+            else -&gt; "fix the highlighted field"
+        }
+        WirexError.Code.TEMPORARY -&gt; if (error.retryable) "retry" else "give up"
+        WirexError.Code.FAILED -&gt; "terminal"
+    }
+
+    fun environment(name: String, chainId: String): WirexEnvironment? = try {
+        WirexEnvironment.resolve(name, chainId)
+    } catch (e: WirexEnvironmentUnavailable) {
+        null   <span class="tok-c">// UnknownName · NotBuilt · MalformedEndpoints · MissingChainId: show the reason, never fall back</span>
+    }
+}</code></pre>
+<ul><li>Logging is off by default. The card surfaces take <code>WirexLogging(level, sink)</code> (presets <code>WirexLogging.DISABLED</code>, <code>WirexLogging.DEBUG</code>, <code>logcatLogging(level)</code>, tag <code>WirexappCardSdk</code>); the wallet takes a separate <code>WirexWalletLogging</code> with its own sink type and <code>logcatLogging</code> function (tag <code>WirexWallet</code>). Every logged value passes a redactor; tokens and card data are never handed to a sink. Sinks are called on arbitrary threads and must not block.</li><li><code>WirexTimeouts(connectMillis, readMillis)</code> default to 15 seconds each. A timed-out request fails <code>TEMPORARY</code> and is retryable.</li><li><code>WirexError.code</code>: <code>UNAUTHORIZED</code>, <code>ACTION_REQUIRED</code>, <code>UPDATE_REQUIRED</code>, <code>INVALID_INPUT</code>, <code>TEMPORARY</code>, <code>FAILED</code>. <code>retryable</code> says whether a retry can help. <code>reason</code> adds detail where the backend gives one: <code>ACTION_TOKEN_REJECTED</code>, <code>CARD_ALREADY_LINKED</code>, <code>CARD_LIMIT_REACHED</code>, <code>INVALID_CARD_ID</code>.</li><li><code>WirexEnvironmentUnavailable</code> is thrown by <code>WirexEnvironment.resolve(name, chainId)</code> and <code>WirexWalletEnvironment.resolve(name)</code> for an unknown name or a blank <code>chainId</code>; the <code>create(...)</code> factories return <code>null</code> instead.</li><li><code>WirexDeclined</code> is not an error state: the user said no, and nothing was sent.</li></ul>
+</section>
+<section id="your-backend">
+<h2><span class="num">09</span>Your backend</h2>
+<p>The SDK makes none of these calls. Your backend performs them with the partner credentials Wirex issued, and the app passes the results in:</p>
+<ul><li><strong>Price a top-up</strong> → <code>estimationId</code> and <code>sourceAmount</code> for the wallet quote. Short TTL; re-price to re-arm an expired checkout.</li><li><strong>Execute a top-up</strong> → settles it; a card payment returns the 3-D Secure orchestrator URL.</li><li><strong>Mint a checkout token</strong> (wallet token mode) → <code>checkoutToken</code>, scoped to the top-up flow.</li><li><strong>Serve the wallet provider config</strong> → the provider block the app passes to the wallet verbatim.</li></ul>
+<p>Authenticated calls carry <code>Authorization: Bearer</code>, <code>X-Chain-Id</code> and one identity header (<code>X-User-Email</code> or <code>X-User-Wallet</code>, never both). For exact paths and payloads see the Wirex BaaS API reference provided with your integration.</p>
+</section>
+<section id="the-example-app">
+<h2><span class="num">10</span>The example app</h2>
+<p><a href="example/"><code>example/</code></a> is a Kotlin app that exercises all four surfaces against your own data; nothing is compiled in. Open it in Android Studio and run the <code>app</code> module; it resolves the SDK from Maven Central. Paste the integration JSON (<code>chainId</code>, <code>bearer</code>, <code>actionToken</code>, <code>cardId</code>, identity) on the Reveal or Collect screen; the Wallet screen takes an estimation id and the provider block. The field list is in <a href="PARTNER-CONFIG.md"><code>PARTNER-CONFIG.md</code></a>. The Pay sheet needs a device with Google Pay set up.</p>
+</section>
+<section id="patterns-from-a-production-integration">
+<h2><span class="num">11</span>Patterns from a production integration</h2>
+<p>The SDK ships inside a production cardholder app built on the same BaaS API. The patterns below are not required by the API; they are what that integration settled on, with the app-specific parts removed.</p>
+<h3 id="credentials-in-practice">Credentials in practice</h3>
+<pre><code>import com.wirexapp.baas.cards.core.WirexActionScope
+import com.wirexapp.baas.cards.core.WirexCredentialProvider
+import com.wirexapp.baas.cards.core.errors.WirexError
+
+interface AuthSession {
+    suspend fun accessToken(): Pair&lt;String, Long&gt;?          <span class="tok-c">// token + expiry epoch ms</span>
+    suspend fun refreshAccessToken(): String?
+    suspend fun signAction(scope: WirexActionScope): String
+    val email: String?
+}
+
+class ProductionCredentials(private val auth: AuthSession) : WirexCredentialProvider {
+    @Volatile private var offered: Pair&lt;WirexActionScope, String&gt;? = null
+
+    /** Sign BEFORE the sheet opens and hand the token over one-shot: the user confirms once. */
+    fun offerStepUpToken(scope: WirexActionScope, token: String) { offered = scope to token }
+    fun revokeOfferedStepUpToken() { offered = null }
+
+    override suspend fun accessToken(): String {
+        <span class="tok-c">// Expiry, not just presence: the SDK sends what it is given and never retries a 401.</span>
+        val current = auth.accessToken()
+        if (current != null &amp;&amp; current.second - System.currentTimeMillis() &gt; 30_000) return current.first
+        return auth.refreshAccessToken() ?: throw WirexError(WirexError.Code.UNAUTHORIZED, retryable = false)
+    }
+
+    override suspend fun actionToken(scope: WirexActionScope): String {
+        offered?.takeIf { it.first == scope }?.let { offered = null; return it.second }
+        return auth.signAction(scope)                              <span class="tok-c">// fallback: sign now</span>
+    }
+
+    override val userEmail: String? get() = auth.email
+    override val userWallet: String? get() = null
+}</code></pre>
+<ul><li><strong>Check the bearer's expiry, not just its presence.</strong> Your own API client probably refreshes on a 401 and retries; the SDK does neither. Use the same expiry buffer your client uses so the two agree on "about to expire", refresh before returning, and only fall back to a still-valid token when the refresh fails.</li><li><strong>Sign once.</strong> The user confirms a card reveal with a step-up <em>before</em> the sheet opens. Mint the action token there, offer it to the provider one-shot, and revoke it if the flow is abandoned. Otherwise the SDK asks for a second confirmation for the same action.</li><li><strong>Configure once per process</strong>, cached behind a promise or a flag, and clear the cache on failure so a later attempt can retry. Derive <code>testMode</code> from your <em>runtime</em> environment if your app can switch backends. Log at <code>debug</code> in development builds and <code>warn</code> in release.</li><li><strong>Tokens and identity are read per call</strong>, so a sign-out and sign-in is picked up automatically; keep the provider reading live state rather than a captured copy.</li></ul>
+<h3 id="reveal-in-practice">Reveal in practice</h3>
+<ul><li><strong>One session per open sheet, destroyed with it.</strong> The session holds the retrieved values natively; leaving one alive after the sheet closes keeps a PAN in memory for nothing.</li><li><strong>Unmask immediately when the user already confirmed.</strong> After the step-up signature, call <code>reveal()</code> on the rows right after <code>load()</code> instead of asking for another tap.</li><li><strong>Log which fields failed together with the snapshot's error code.</strong> The row shows only <em>that</em> a field failed, never why.</li></ul>
+<h3 id="collect-in-practice">Collect in practice</h3>
+<pre><code>import android.content.Context
+import com.wirexapp.baas.cards.collect.WirexBillingDetails
+import com.wirexapp.baas.cards.collect.WirexCollect
+import com.wirexapp.baas.cards.collect.WirexCollectProfile
+import com.wirexapp.baas.cards.collect.WirexTopUpTokenizeParams
+import com.wirexapp.baas.cards.collect.ui.WirexCollectForm
+
+/** The sealed form plus your own billing-address and card-label fields; submit only when both are ready. */
+class NewCardScreen(context: Context, collect: WirexCollect) {
+    val form: WirexCollectForm = collect.form(context = context, profile = WirexCollectProfile.TOPUP)
+    var billing: WirexBillingDetails? = null                <span class="tok-c">// filled by your own address screen</span>
+    private var isComplete = false
+
+    init { form.onChange = { state -&gt; isComplete = state.isComplete } }
+
+    val canSubmit: Boolean get() = isComplete &amp;&amp; billing != null
+
+    suspend fun submit(): String =
+        form.tokenizeTopUp(WirexTopUpTokenizeParams(billingDetails = requireNotNull(billing))).cardId
+
+    fun release() = form.clear()
+}</code></pre>
+<ul><li>The sealed rows replace only the card inputs. Keep your own billing-address entry and card label, enable submit on <code>isComplete</code> <strong>and</strong> a complete address, and release the form when the screen goes away.</li></ul>
+<h3 id="d-secure-in-practice">3-D Secure in practice</h3>
+<pre><code>import com.wirexapp.baas.cards.threeds.WirexThreeDSSession
+import com.wirexapp.baas.cards.threeds.WirexThreeDSState
+import com.wirexapp.baas.cards.threeds.WirexThreeDSStatus
+
+/** Settle exactly once, and tell the three endings apart. */
+class StepUpWatcher(
+    private val onError: (String) -&gt; Unit,
+    private val onDismissed: () -&gt; Unit,
+    private val onComplete: (WirexThreeDSStatus) -&gt; Unit,
+    private val onChallengeVisible: (Boolean) -&gt; Unit,
+) {
+    private var settled = false
+
+    fun watch(session: WirexThreeDSSession) {
+        session.onChange = { snapshot -&gt;
+            onChallengeVisible(snapshot.isChallengeVisible)            <span class="tok-c">// hide your own header while true</span>
+            val outcome = snapshot.outcome
+            if (snapshot.state == WirexThreeDSState.SETTLED &amp;&amp; outcome != null &amp;&amp; !settled) {
+                settled = true
+                val error = outcome.error
+                when {
+                    error != null -&gt; onError(error.message ?: error.code.name)      <span class="tok-c">// show it</span>
+                    outcome.status == WirexThreeDSStatus.UNKNOWN -&gt; onDismissed()   <span class="tok-c">// the user closed it: reconcile by backend status</span>
+                    else -&gt; onComplete(outcome.status)                               <span class="tok-c">// COMPLETED · PENDING · FAILED</span>
+                }
+            }
+        }
+    }
+}</code></pre>
+<ul><li>Start the session only after the view is mounted; a challenge can appear within a frame of the page asking for one.</li><li>Three endings, not interchangeable: an outcome with an <code>error</code> is shown; <code>unknown</code> <em>without</em> an error means the user closed the challenge, which is a decision, not a failure, and the payment may still complete; anything else is a real status. Reconcile the first two against your backend.</li></ul>
+<h3 id="wallet-top-up-in-practice">Wallet top-up in practice</h3>
+<pre><code>import com.wirexapp.wallet.topup.WirexWalletCheckoutView
+import com.wirexapp.wallet.topup.WirexWalletConfig
+import com.wirexapp.wallet.topup.WirexWalletLaunch
+import com.wirexapp.wallet.topup.generated.SpecWalletLaunchOutcome
+import com.wirexapp.wallet.topup.model.WirexWalletCheckoutAuth
+import com.wirexapp.wallet.topup.model.WirexWalletCheckoutEvent
+import com.wirexapp.wallet.topup.model.WirexWalletLaunchParams
+import com.wirexapp.wallet.topup.model.WirexWalletProviderConfig
+import com.wirexapp.wallet.topup.model.WirexWalletQuote
+import com.wirexapp.wallet.topup.model.WirexWalletReturnLink
+
+sealed class TabOutcome {
+    data class Executed(val outcome: SpecWalletLaunchOutcome) : TabOutcome()   <span class="tok-c">// COMPLETED or PENDING</span>
+    data object Failed : TabOutcome()
+    data object Unknown : TabOutcome()                                          <span class="tok-c">// reconcile by backend status</span>
+}
+
+object WalletArming {
+    /** One token per armed quote. A failed mint is not fatal in-app: run legacy mode instead. */
+    suspend fun auth(mint: suspend () -&gt; String): WirexWalletCheckoutAuth? =
+        runCatching { WirexWalletCheckoutAuth(checkoutToken = mint()) }.getOrNull()
+
+    /** An expired estimate is re-priced on your backend, then the same view is re-armed. */
+    fun onEvent(view: WirexWalletCheckoutView, event: WirexWalletCheckoutEvent,
+                reprice: () -&gt; Triple&lt;WirexWalletQuote, WirexWalletProviderConfig, WirexWalletCheckoutAuth?&gt;) {
+        if (event == WirexWalletCheckoutEvent.EstimationExpired) {
+            val (quote, providerConfig, auth) = reprice()
+            view.rearm(quote, providerConfig, auth = auth)
+        }
+    }
+
+    /** Custom Tab (token mode only): your app opens the URL in a Chrome Custom Tab and reads the return link. */
+    fun launchUrl(config: WirexWalletConfig, auth: WirexWalletCheckoutAuth, quote: WirexWalletQuote, provider: String, returnUrl: String): String =
+        WirexWalletLaunch.buildUrl(config, WirexWalletLaunchParams(checkoutToken = auth.checkoutToken, quote = quote, provider = provider, returnUrl = returnUrl))
+
+    fun readReturn(url: String?, returnUrl: String, quote: WirexWalletQuote): TabOutcome {
+        if (url == null || !WirexWalletReturnLink.matches(url, returnUrl)) return TabOutcome.Unknown   <span class="tok-c">// tab closed without the link</span>
+        val back = WirexWalletReturnLink.parse(url)
+        if (back.estimationId != null &amp;&amp; back.estimationId != quote.estimationId) return TabOutcome.Unknown
+        val outcome = back.outcome
+        return when (outcome) {
+            SpecWalletLaunchOutcome.COMPLETED, SpecWalletLaunchOutcome.PENDING -&gt; TabOutcome.Executed(outcome)
+            SpecWalletLaunchOutcome.FAILED -&gt; TabOutcome.Failed
+            else -&gt; TabOutcome.Unknown                                                  <span class="tok-c">// ALREADY_EXECUTED or no outcome</span>
+        }
+    }
+}</code></pre>
+<ul><li><strong>One <code>checkoutToken</code> per armed quote.</strong> Mint it on your backend for the quote you are about to arm; a re-arm mints again. Never hand the user's session bearer to the frame.</li><li><strong>A failed mint is not fatal in-app.</strong> Run legacy mode instead: the frame tokenizes and your backend executes. Keep <code>debug</code> off outside development builds.</li><li><strong>Custom Tab is the partner path for Google Pay on Android</strong> when your own WebView cannot complete it. Use an <strong>https App Link</strong> as <code>returnUrl</code> (a custom scheme can be claimed by any installed app), open the URL in a Chrome Custom Tab, and treat every ending that is not <code>COMPLETED</code>, <code>PENDING</code> or <code>FAILED</code> as unknown: Android cannot close the tab for you, and a closed tab says nothing about the payment. A Custom Tab needs token mode; there is nobody to hand a wallet token to.</li></ul>
+</section>
+<section id="troubleshooting">
+<h2><span class="num">12</span>Troubleshooting</h2>
+<ul><li><strong>A revealed field is blank or will not unmask.</strong> Screenshot protection is not active on this window (<code>onRevealRefused</code> fires); pass the window with <code>secureWindow(window)</code>.</li><li><strong><code>create(...)</code> returns <code>null</code>.</strong> This build has no endpoints for that side, or <code>chainId</code> is blank. Call <code>WirexEnvironment.resolve(name, chainId)</code> to get the reason.</li><li><strong>Reveal or Collect fails with <code>UNAUTHORIZED</code>.</strong> The bearer is stale; <code>accessToken()</code> must refresh. The SDK never retries a 401.</li><li><strong>Collect cannot tokenize.</strong> The user is not enrolled at the acquirer, or billing details are missing.</li><li><strong>The Pay button is unavailable.</strong> The checker was not started, the provider block is empty, or the device is below the Google Pay floors.</li><li><strong>3-D Secure ends in <code>PENDING</code>.</strong> Not an error. Settle by your backend's status.</li><li><strong>Both <code>userEmail</code> and <code>userWallet</code> are set.</strong> The backend answers <code>400</code>. Return exactly one.</li></ul>
+</section>
 
   </div>
 </div>
 </main>
-
-<footer class="wrap">
-  Wirex Mobile SDK · Integration Guide. Field reference: the example's <code>PARTNER-CONFIG.md</code>. Customization tokens: the SDK README.
-</footer>
+<footer class="wrap"><p class="muted">Wirex Mobile SDK · Integration Guide. Generated from INTEGRATION.md.</p></footer>
 </body>
 </html>

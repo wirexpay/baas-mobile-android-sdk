@@ -28,8 +28,8 @@ import com.wirexapp.baas.cards.core.logging.WirexLogging
  *
  *  - the composite rows the SDK draws (label, sealed value, its own copy button)
  *  - masked-by-default, and an explicit reveal
- *  - the partial-failure rule: with scenario `cvv_fails`, the CVV row shows a placeholder while the
- *    session stays ready, because the PAN did load
+ *  - the partial-failure rule: when one field fails (say the CVV), its row shows a placeholder while
+ *    the session stays ready, because the other fields did load
  *  - capture protection state, reported per row
  *
  * Theme and appearance moved to the Appearance tab, so one tap restyles this screen and the collect

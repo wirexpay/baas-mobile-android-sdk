@@ -1,8 +1,10 @@
 # Example configuration — the debug menu
 
 This example is one binary that exercises **every SDK surface** against **any partner's data**. Nothing
-is hard-coded: the **Config tab** is a form where you type the integration parameters and credentials
-into the running build, and every screen reads them live. The same field set is the contract for the
+is hard-coded: you enter the integration parameters and credentials into the running build and every
+screen reads them live. The React Native example has a **Config** tab for this; the iOS, Android and
+Flutter examples take a pasted JSON with the same fields on their Reveal / Collect screens, and the
+Wallet screen takes the estimation id and provider block directly. The same field set is the contract for the
 iOS, Android and Flutter examples, so QA enters the same values everywhere.
 
 ## Fields
@@ -37,7 +39,7 @@ iOS, Android and Flutter examples, so QA enters the same values everywhere.
 
 ## What each surface needs
 
-| Surface | Enter on the Config tab |
+| Surface | What to enter |
 |---|---|
 | **Reveal** (PAN/CVV/expiry/PIN) | environment, chainId, bearer, actionToken, cardId |
 | **Collect** (tokenize a card) | environment, chainId, bearer |

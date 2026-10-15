@@ -320,8 +320,8 @@ class CheckoutScreen(private val context: Context, private val appConfig: AppCon
                 log.append("Diagnostic ${event.diagnostic.kind.wire} ${event.diagnostic.fields}")
             is WirexWalletCheckoutEvent.Debug ->
                 log.append("[frame ${event.level}] ${event.message}")
-            // Hosts keep an else arm: the event set grows with the frame (docs/NATIVE-API.md,
-            // "Growth contract"). The SDK switches exhaustively; hosts must not.
+            // Hosts keep an else arm: the event set grows with the frame in later SDK versions.
+            // The SDK switches exhaustively; hosts must not.
             else ->
                 log.append("unhandled event $event")
         }
