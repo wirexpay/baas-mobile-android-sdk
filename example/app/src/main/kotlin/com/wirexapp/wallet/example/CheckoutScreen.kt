@@ -17,6 +17,13 @@ import com.wirexapp.wallet.topup.model.WirexWalletCheckoutEvent
 import com.wirexapp.wallet.topup.model.WirexWalletMoney
 import com.wirexapp.wallet.topup.model.WirexWalletProviderConfig
 import com.wirexapp.wallet.topup.model.WirexWalletQuote
+import android.os.Handler
+import android.os.Looper
+import com.wirexapp.baas.example.LiveConfig
+import java.net.HttpURLConnection
+import java.net.URL
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Mounts [WirexWalletCheckoutView] from a pasted provider config and an editable quote, and prints
@@ -93,6 +100,10 @@ class CheckoutScreen(private val context: Context, private val appConfig: AppCon
         column.addView(Ui.labelled(context, "destination currency", destinationCurrency), Ui.matchWidth())
         column.addView(Ui.labelled(context, "fee (source currency)", feeAmount), Ui.matchWidth())
         column.addView(Ui.labelled(context, "expires in (seconds)", expiresIn), Ui.matchWidth())
+
+        // Prices a top-up with the documented BaaS API using the bearer on the Config tab, and fills
+        // the estimation id. Pricing is the partner backend's job; this verifies a token without one.
+        column.addView(Ui.buttonRow(context, "Fetch estimate" to ::fetchEstimate), Ui.matchWidth())
 
         debugToggle = CheckBox(context).apply { text = "debug (arms wallet-debug + inspectable web view — never in production)"; textSize = 11f }
         brandingToggle = CheckBox(context).apply { text = "branding (partner processing disclosure)"; textSize = 11f }
@@ -249,6 +260,96 @@ class CheckoutScreen(private val context: Context, private val appConfig: AppCon
             // Epoch MILLISECONDS, by contract.
             expiresAtMs = System.currentTimeMillis() + seconds * 1000,
         )
+    }
+
+    // Prices a top-up with the documented Wirex BaaS API using the bearer on the Config tab, and fills
+    // the estimation id. Pricing a top-up is the partner backend's job; this is a convenience to verify
+    // a token and get a real id without a backend. The SDK only consumes the id.
+    private fun fetchEstimate() {
+        val base = LiveConfig.credential("baasApiUrl").trim().trimEnd('/')
+        val bearer = LiveConfig.credential("bearer")
+        val chainId = LiveConfig.credential("chainId")
+        val wallet = LiveConfig.credential("wallet")
+        val email = LiveConfig.credential("email")
+        if (base.isEmpty() || bearer.isEmpty()) {
+            log.append("Fetch estimate: set BaaS API URL + bearer on the Config tab")
+            return
+        }
+        val identity: Pair<String, String> = when {
+            wallet.isNotEmpty() -> "X-User-Wallet" to wallet
+            email.isNotEmpty() -> "X-User-Email" to email
+            else -> {
+                log.append("Fetch estimate: set a user wallet or email on the Config tab")
+                return
+            }
+        }
+        val currency = destinationCurrency.text.toString().trim().ifEmpty { "EUR" }
+        val amount = destinationAmount.text.toString().trim().ifEmpty { "100.00" }
+        log.append("fetching estimate…")
+        val main = Handler(Looper.getMainLooper())
+        Thread {
+            try {
+                val (address, decimals) = resolveSettlementToken(base, bearer, chainId, identity, currency)
+                val id = postEstimate(base, bearer, chainId, identity, amount, decimals, address)
+                main.post { estimationId.setText(id); log.append("estimate: $id") }
+            } catch (e: Exception) {
+                main.post { log.append("estimate failed: ${e.message}") }
+            }
+        }.start()
+    }
+
+    private fun openConn(base: String, path: String, method: String, bearer: String, chainId: String, identity: Pair<String, String>): HttpURLConnection =
+        (URL("$base$path").openConnection() as HttpURLConnection).apply {
+            requestMethod = method
+            setRequestProperty("Authorization", "Bearer $bearer")
+            setRequestProperty("X-Chain-Id", chainId)
+            setRequestProperty(identity.first, identity.second)
+            setRequestProperty("Content-Type", "application/json")
+            connectTimeout = 30000
+            readTimeout = 30000
+        }
+
+    private fun resolveSettlementToken(base: String, bearer: String, chainId: String, identity: Pair<String, String>, currency: String): Pair<String, Int> {
+        val conn = openConn(base, "/api/v1/config/tokens", "GET", bearer, chainId, identity)
+        if (conn.responseCode != 200) throw IllegalStateException("GET /config/tokens → HTTP ${conn.responseCode}")
+        val body = conn.inputStream.bufferedReader().use { it.readText() }
+        val rows: JSONArray = if (body.trimStart().startsWith("[")) JSONArray(body) else JSONObject(body).optJSONArray("data") ?: JSONArray()
+        for (i in 0 until rows.length()) {
+            val row = rows.getJSONObject(i)
+            val equiv = row.optJSONArray("equivalent_symbols") ?: JSONArray()
+            val symbols = (0 until equiv.length()).map { equiv.getString(it) }
+            if (symbols.contains(currency) || row.optString("symbol").endsWith(currency)) {
+                val address = row.optString("address").ifEmpty { row.optString("contract_address") }
+                return address to row.optInt("decimals", 18)
+            }
+        }
+        throw IllegalStateException("no settlement token for $currency")
+    }
+
+    private fun postEstimate(base: String, bearer: String, chainId: String, identity: Pair<String, String>, amount: String, decimals: Int, tokenAddress: String): String {
+        val conn = openConn(base, "/api/v1/cards/topup/estimate", "POST", bearer, chainId, identity)
+        conn.doOutput = true
+        val payload = JSONObject()
+            .put("destination_amount", toBaseUnits(amount, decimals))
+            .put("destination_token_address", tokenAddress)
+            .put("payment_method", "apple_pay")
+        conn.outputStream.use { it.write(payload.toString().toByteArray()) }
+        if (conn.responseCode != 200) {
+            val err = (conn.errorStream ?: conn.inputStream)?.bufferedReader()?.use { it.readText() } ?: ""
+            throw IllegalStateException("POST /cards/topup/estimate → HTTP ${conn.responseCode}: $err")
+        }
+        val body = conn.inputStream.bufferedReader().use { it.readText() }
+        return JSONObject(body).getString("estimation_id")
+    }
+
+    /** display amount (e.g. "100.00") → base-units string (amount * 10^decimals), without float loss. */
+    private fun toBaseUnits(amount: String, decimals: Int): String {
+        val parts = amount.split(".", limit = 2)
+        val whole = parts[0]
+        val frac = if (parts.size > 1) parts[1] else ""
+        val fracPadded = (frac + "0".repeat(decimals)).take(decimals)
+        val scaled = (whole + fracPadded).trimStart('0')
+        return scaled.ifEmpty { "0" }
     }
 
     private fun money(amount: EditText, currency: EditText): WirexWalletMoney? {

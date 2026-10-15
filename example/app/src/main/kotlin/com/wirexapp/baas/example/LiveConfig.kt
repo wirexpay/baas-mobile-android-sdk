@@ -39,7 +39,7 @@ object LiveConfig {
 
     private val lock = Any()
 
-    private val KNOWN = listOf("environment", "bearer", "email", "wallet", "cardId", "chainId", "actionToken", "cardholderName")
+    private val KNOWN = listOf("environment", "bearer", "email", "wallet", "cardId", "chainId", "actionToken", "cardholderName", "baasApiUrl")
 
     /** Called once from the activity with whatever came in on the launch intent. */
     fun seed(values: Map<String, String>) = synchronized(lock) {

@@ -36,6 +36,7 @@ class ConfigScreen(private val activity: AppCompatActivity) {
         FieldSpec("wallet", "User wallet", "X-User-Wallet (EOA)", false),
         FieldSpec("cardId", "Card ID", "the card Reveal / Collect act on", false),
         FieldSpec("cardholderName", "Cardholder name", null, false),
+        FieldSpec("baasApiUrl", "BaaS API URL", "for the Wallet “Fetch estimate” helper", false),
     )
     private val secrets = listOf(
         FieldSpec("bearer", "Bearer token", "getAccessToken — Wirex bearer for the user", true),
