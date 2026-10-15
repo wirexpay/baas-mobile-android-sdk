@@ -11,6 +11,8 @@ values.
 
 Use of the SDK requires an agreement with Wirex. See [LICENSE](LICENSE).
 
+📖 **Integration guide:** https://wirexpay.github.io/baas-mobile-android-sdk/ — and a runnable example in [`example/`](example/).
+
 ## Requirements
 
 - Android 6.0 (API 23) or later.

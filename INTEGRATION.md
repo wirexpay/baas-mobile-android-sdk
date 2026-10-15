@@ -2,7 +2,7 @@
 
 > Audience: an AI assistant helping a partner integrate the Wirex Mobile SDK on native Android (Kotlin).
 > This file is the working context — read top to bottom; every fact is load-bearing. Dense on purpose:
-> no marketing. The human-facing version is `INTEGRATION.html`. For exact backend request/response
+> no marketing. The human-facing version is published at https://wirexpay.github.io/baas-mobile-android-sdk/. For exact backend request/response
 > shapes, defer to the Wirex BaaS API reference — this file does not restate them.
 
 ---
