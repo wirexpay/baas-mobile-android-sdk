@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wirex Mobile SDK (Android) — Integration Guide</title>
+<meta name="description" content="How to integrate the Wirex Mobile SDK: Reveal, Collect, 3DS and Wallet top-up — credentials, each surface, appearance and the runnable example." />
+<style>
+  :root {
+    --bg: #0e0f13;
+    --surface: #171922;
+    --surface-alt: #1f2230;
+    --border: #2a2e3d;
+    --text: #eef0f6;
+    --dim: #aeb4c6;
+    --faint: #7b8296;
+    --accent: #5753ea;
+    --accent-2: #7c79ff;
+    --teal: #2fd4c4;
+    --green: #3cc65e;
+    --pink: #ff407f;
+    --amber: #f4b740;
+    --code-bg: #0b0c10;
+    --radius: 14px;
+    --maxw: 920px;
+  }
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f6f7fb; --surface: #ffffff; --surface-alt: #f0f2f8; --border: #e2e5ef;
+      --text: #15171e; --dim: #44495a; --faint: #78809a; --code-bg: #14161d;
+      color-scheme: light;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 16px; }
+  header.hero {
+    padding: 56px 16px 40px; border-bottom: 1px solid var(--border);
+    background: radial-gradient(1200px 300px at 20% -10%, rgba(87,83,234,.18), transparent 60%);
+  }
+  .hero .wrap { max-width: var(--maxw); }
+  .eyebrow { color: var(--accent-2); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; font-size: 12px; }
+  h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.1; margin: 10px 0 10px; letter-spacing: -.02em; }
+  .lede { color: var(--dim); font-size: 18px; max-width: 70ch; margin: 0; }
+  .badges { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge { font-size: 12.5px; font-weight: 700; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--dim); }
+  .badge.ok { border-color: var(--green); color: var(--green); background: rgba(60,198,94,.1); }
+
+  main { padding: 36px 0 80px; }
+  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 40px; }
+  /* Grid/flex children default to min-width:auto and refuse to shrink below their
+     widest child (a code block, table or SVG), which pushes the track past the
+     viewport. Letting them shrink keeps the page within its width. */
+  .layout > * { min-width: 0; }
+  nav.toc { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow: auto; font-size: 14px; }
+  nav.toc .t { color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: .1em; font-size: 11px; margin: 0 0 10px; }
+  nav.toc a { display: block; color: var(--dim); text-decoration: none; padding: 5px 10px; border-radius: 8px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface); }
+  nav.toc a.sub { padding-left: 22px; font-size: 13px; color: var(--faint); }
+
+  section { scroll-margin-top: 20px; margin: 0 0 42px; }
+  h2 { font-size: 26px; letter-spacing: -.01em; margin: 0 0 6px; padding-top: 6px; }
+  h3 { font-size: 18px; margin: 26px 0 6px; }
+  h2 .num { color: var(--accent-2); font-variant-numeric: tabular-nums; margin-right: 10px; }
+  p { margin: 10px 0; }
+  a { color: var(--accent-2); }
+  code { font-family: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace; font-size: .88em; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
+  pre { background: var(--code-bg); color: #e7e9f3; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; overflow: auto; font-family: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.6; }
+  pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+  .tok-k { color: #ff86b3; } .tok-s { color: #8ee4a3; } .tok-c { color: #727a90; font-style: italic; } .tok-f { color: #86c8ff; } .tok-n { color: #f4b740; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 16px 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .surface-card h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
+  .pill { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .05em; }
+  .pill.creds { background: rgba(244,183,64,.14); color: var(--amber); border: 1px solid rgba(244,183,64,.4); }
+  .pill.nocreds { background: rgba(47,212,196,.14); color: var(--teal); border: 1px solid rgba(47,212,196,.4); }
+  .pill.device { background: rgba(255,64,127,.14); color: var(--pink); border: 1px solid rgba(255,64,127,.4); }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14.5px; table-layout: fixed; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; overflow-wrap: anywhere; }
+  th { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  td code { overflow-wrap: anywhere; }
+
+  .note { border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 16px 0; }
+  .note.warn { border-left-color: var(--pink); }
+  .note.tip { border-left-color: var(--green); }
+  .note .lbl { font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); }
+  .note.warn .lbl { color: var(--pink); } .note.tip .lbl { color: var(--green); }
+
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 16px 0; }
+  .steps li { position: relative; padding: 2px 0 14px 44px; }
+  .steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 14px; }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0; font-size: 13.5px; }
+  .flow .n { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-weight: 600; }
+  .flow .arw { color: var(--faint); }
+  .muted { color: var(--faint); font-size: 13.5px; }
+  figure.diagram { margin: 22px 0; }
+  figure.diagram svg { width: 100%; height: auto; display: block; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+  figure.diagram figcaption { color: var(--faint); font-size: 13px; margin-top: 8px; text-align: center; }
+  .diagram .d-panel { fill: var(--surface-alt); stroke: var(--border); }
+  .diagram .d-box { fill: var(--bg); stroke: var(--border); }
+  .diagram .d-title { fill: var(--faint); font: 800 11px -apple-system, Segoe UI, Roboto, sans-serif; letter-spacing: .09em; text-transform: uppercase; }
+  .diagram .d-h { fill: var(--text); font: 700 14px -apple-system, Segoe UI, Roboto, sans-serif; }
+  .diagram .d-t { fill: var(--dim); font: 13px ui-monospace, Menlo, monospace; }
+  .diagram .d-n { fill: var(--faint); font: 12px -apple-system, Segoe UI, Roboto, sans-serif; }
+  .diagram .d-chip { stroke-width: 1.4; }
+  .diagram .d-chip-t { fill: var(--text); font: 700 13.5px -apple-system, Segoe UI, Roboto, sans-serif; }
+  .diagram .d-edge { stroke: var(--faint); stroke-width: 1.6; fill: none; }
+  .diagram .d-edge-l { fill: var(--faint); font: 600 11.5px -apple-system, Segoe UI, Roboto, sans-serif; }
+  .diagram .d-seal { fill: rgba(47,212,196,.12); stroke: var(--teal); }
+  .diagram .d-seal-t { fill: var(--teal); font: 700 12.5px -apple-system, Segoe UI, Roboto, sans-serif; }
+  footer { border-top: 1px solid var(--border); padding: 28px 16px; color: var(--faint); font-size: 13.5px; }
+
+  @media (max-width: 820px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static; max-height: none; margin-bottom: 20px; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; background: var(--surface); }
+    .grid2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Wirex Mobile SDK</div>
+    <h1>Integration Guide</h1>
+    <p class="lede">One SDK, four sealed surfaces — card <strong>Reveal</strong>, card <strong>Collect</strong>, <strong>3-D&nbsp;Secure</strong> and <strong>Wallet</strong> (Apple&nbsp;Pay&nbsp;/&nbsp;Google&nbsp;Pay) top-up. This guide covers what each surface needs, where the credentials come from, how to style them, and how to run the example that exercises all four.</p>
+    <div class="badges">
+      <span class="badge">Native Android · Kotlin</span>
+      <span class="badge">com.wirexapp.baas:mobile-sdk · Maven</span>
+      <span class="badge ok">Reveal · Collect · 3-D Secure · Wallet</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <p class="t">On this page</p>
+    <a href="#model">The model</a>
+    <a href="#install">Install &amp; configure</a>
+    <a href="#credentials">Credentials</a>
+    <a href="#reveal" class="sub">Reveal</a>
+    <a href="#collect" class="sub">Collect</a>
+    <a href="#threeds" class="sub">3-D Secure</a>
+    <a href="#wallet" class="sub">Wallet</a>
+    <a href="#appearance">Appearance &amp; sizing</a>
+    <a href="#example">Running the example</a>
+    <a href="#endpoints">Backend calls</a>
+  </nav>
+
+  <div class="content">
+
+  <section id="model">
+    <h2><span class="num">00</span>The model</h2>
+    <p>The SDK owns <em>sealed UI surfaces</em> and nothing else. A revealed PAN, a typed card number, a wallet payment token — none of them reach app code; they live inside a native view or a Wirex-hosted frame. The SDK never mints a credential, never stores one, and (for most surfaces) never decides a transaction.</p>
+    <p>Your app provides two things:</p>
+    <div class="grid2">
+      <div class="card"><h3>Authentication</h3><p class="muted">A bearer for the signed-in user, a step-up signature when an endpoint needs a second factor, and the identity header. The SDK <em>asks</em> for these through a credential provider — it never creates them.</p></div>
+      <div class="card"><h3>Orchestration</h3><p class="muted">Your backend prices and executes the money-moving calls (top-up estimate / execute, the 3DS URL, the wallet estimate). The SDK renders the result and reports events back.</p></div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 920 384" role="img" aria-label="Architecture: the partner app provides credentials and orchestration, the SDK renders four sealed surfaces, Wirex hosts the backend; secrets never reach app code.">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#7b8296" />
+          </marker>
+        </defs>
+        <!-- panels -->
+        <rect class="d-panel" x="20" y="48" width="256" height="268" rx="12" />
+        <rect class="d-panel" x="332" y="48" width="256" height="268" rx="12" />
+        <rect class="d-panel" x="644" y="48" width="256" height="268" rx="12" />
+        <text class="d-title" x="148" y="38" text-anchor="middle">Partner app</text>
+        <text class="d-title" x="460" y="38" text-anchor="middle">Wirex Mobile SDK</text>
+        <text class="d-title" x="772" y="38" text-anchor="middle">Wirex</text>
+
+        <!-- app inner boxes -->
+        <rect class="d-box" x="36" y="68" width="224" height="104" rx="9" />
+        <text class="d-h" x="48" y="90">Credential provider</text>
+        <text class="d-t" x="48" y="112">getAccessToken()</text>
+        <text class="d-t" x="48" y="132">getActionToken(scope)</text>
+        <text class="d-t" x="48" y="152">userEmail / userWallet</text>
+        <rect class="d-box" x="36" y="188" width="224" height="108" rx="9" />
+        <text class="d-h" x="48" y="210">Backend orchestration</text>
+        <text class="d-t" x="48" y="232">price &amp; execute top-up</text>
+        <text class="d-t" x="48" y="252">checkout token</text>
+        <text class="d-t" x="48" y="272">3DS url</text>
+
+        <!-- SDK surface chips -->
+        <rect class="d-chip" x="352" y="72" width="216" height="46" rx="9" fill="rgba(87,83,234,.14)" stroke="#5753ea" />
+        <text class="d-chip-t" x="368" y="100">Reveal <tspan class="d-n">· PAN / CVV</tspan></text>
+        <rect class="d-chip" x="352" y="128" width="216" height="46" rx="9" fill="rgba(87,83,234,.14)" stroke="#5753ea" />
+        <text class="d-chip-t" x="368" y="156">Collect <tspan class="d-n">· tokenize</tspan></text>
+        <rect class="d-chip" x="352" y="184" width="216" height="46" rx="9" fill="rgba(47,212,196,.14)" stroke="#2fd4c4" />
+        <text class="d-chip-t" x="368" y="212">3-D Secure <tspan class="d-n">· no creds</tspan></text>
+        <rect class="d-chip" x="352" y="240" width="216" height="46" rx="9" fill="rgba(87,83,234,.14)" stroke="#5753ea" />
+        <text class="d-chip-t" x="368" y="268">Wallet <tspan class="d-n">· Apple/Google Pay</tspan></text>
+
+        <!-- Wirex inner boxes -->
+        <rect class="d-box" x="660" y="72" width="224" height="46" rx="9" />
+        <text class="d-h" x="672" y="100">BaaS API</text>
+        <rect class="d-box" x="660" y="128" width="224" height="46" rx="9" />
+        <text class="d-h" x="672" y="156">Hosted frames</text>
+        <rect class="d-box" x="660" y="184" width="224" height="46" rx="9" />
+        <text class="d-h" x="672" y="212">Acquirer</text>
+
+        <!-- edges -->
+        <path class="d-edge" d="M276 140 L332 140" marker-end="url(#arr)" />
+        <text class="d-edge-l" x="304" y="130" text-anchor="middle">creds</text>
+        <path class="d-edge" d="M588 150 L644 150" marker-start="url(#arr)" marker-end="url(#arr)" />
+        <text class="d-edge-l" x="616" y="140" text-anchor="middle">calls</text>
+
+        <!-- sealed callout -->
+        <rect class="d-seal" x="20" y="332" width="880" height="38" rx="9" />
+        <text class="d-seal-t" x="460" y="356" text-anchor="middle">Sealed — the PAN, the CVV and the wallet payment token never reach app code</text>
+      </svg>
+      <figcaption>The app supplies credentials + orchestration; the SDK renders sealed surfaces; secrets stay inside native views / hosted frames.</figcaption>
+    </figure>
+
+    <p>So a surface is either <span class="pill creds">needs credentials</span> (Reveal, Collect, Wallet) or <span class="pill nocreds">no credentials</span> (3DS — your backend already authenticated to get the URL).</p>
+  </section>
+
+  <section id="install">
+    <h2><span class="num">01</span>Install &amp; configure</h2>
+    <pre><code><span class="tok-c">// app/build.gradle.kts — one artifact, all four surfaces (minSdk 23+)</span>
+dependencies {
+  implementation(<span class="tok-s">"com.wirexapp.baas:mobile-sdk:0.3.7"</span>)
+}
+<span class="tok-c">// add the Maven Central repository that serves it</span></code></pre>
+    <p>Wirex assigns three things per integration. Everything else is your user's data.</p>
+    <table>
+      <tr><th>Value</th><th>What it is</th><th>From</th></tr>
+      <tr><td><code>environment</code></td><td><code>test</code> or <code>production</code> — the SDK resolves the hosts itself (no URLs to pass).</td><td>Wirex</td></tr>
+      <tr><td><code>chainId</code></td><td>The <code>X-Chain-Id</code> every authenticated call carries.</td><td>Wirex</td></tr>
+      <tr><td><code>clientId</code></td><td>Optional <code>?client=</code> on the hosted pages (font-src / chain). </td><td>Wirex</td></tr>
+    </table>
+  </section>
+
+  <section id="credentials">
+    <h2><span class="num">02</span>Credentials</h2>
+    <p>Every credentialed surface reads from one object you implement — the <code>WirexCredentialProvider</code>. The SDK calls it on demand and forwards <strong>exactly one</strong> identity header (sending both <code>X-User-Email</code> and <code>X-User-Wallet</code> is a <code>400</code>).</p>
+    <pre><code><span class="tok-k">class</span> AppCredentials : <span class="tok-f">WirexCredentialProvider</span> {
+  <span class="tok-k">override suspend fun</span> <span class="tok-f">accessToken</span>(): String { <span class="tok-c">/* partner auth → Wirex bearer */</span> }
+  <span class="tok-k">override suspend fun</span> <span class="tok-f">actionToken</span>(scope: WirexActionScope): String { <span class="tok-c">/* CARD_DATA / PIN */</span> }
+  <span class="tok-k">override val</span> userEmail: String? = user.email   <span class="tok-c">// return ONE of the two</span>
+  <span class="tok-k">override val</span> userWallet: String? = <span class="tok-k">null</span>        <span class="tok-c">// the EOA address, if you identify by wallet</span>
+}</code></pre>
+    <table>
+      <tr><th>Credential</th><th>What it is</th><th>How it is minted in production</th></tr>
+      <tr><td><code>getAccessToken</code></td><td>Bearer for the user.</td><td>Your auth → Wirex BaaS. Check expiry and refresh — the SDK sends what it is given and does not retry a 401.</td></tr>
+      <tr><td><code>getActionToken</code></td><td>Step-up for reading card data / PIN.</td><td>The user signs a confirmation message in their wallet; your backend exchanges the signature for a short-lived, one-shot action token.</td></tr>
+      <tr><td><code>userEmail</code> / <code>userWallet</code></td><td>The identity header.</td><td>The signed-in user. Return exactly one.</td></tr>
+    </table>
+
+    <!-- ── Reveal ───────────────────────────────────────────────── -->
+    <h3 id="reveal" style="margin-top:34px">Reveal <span class="pill creds">needs credentials</span></h3>
+    <p>Shows a cardholder their own PAN / expiry / CVV (and PIN, for plastic) in sealed native rows. The value is fetched and drawn inside a secure native view; it never reaches JS.</p>
+    <pre><code><span class="tok-k">val</span> reveal = <span class="tok-f">WirexReveal</span>(WirexEnvironment.<span class="tok-f">resolve</span>(name, chainId = chainId),
+                         credentials, WirexLogging(WirexLogLevel.INFO, sink))
+<span class="tok-k">val</span> session = reveal.<span class="tok-f">createSession</span>(cardId, cardholderName = name,
+    fields = listOf(WirexRevealField.CARDHOLDER_NAME, WirexRevealField.PAN,
+                    WirexRevealField.EXPIRY, WirexRevealField.CVV, WirexRevealField.PIN))
+session.<span class="tok-f">onSnapshot</span> { snapshot -&gt; <span class="tok-c">/* IDLE | LOADING | READY | ERROR */</span> }
+session.<span class="tok-f">load</span>()
+<span class="tok-c">// add one WirexRevealFieldView per field — a View that sizes itself</span></code></pre>
+    <div class="note warn"><span class="lbl">Gotcha · sizing</span> The row pins its value area to its natural height. Give it a box <em>shorter</em> than its content and (from 0.3.4 on) it <strong>clips</strong>; older builds collapsed it to height 0 and drew nothing. Honour <code>onNaturalHeight</code> — measure, don't guess. See <a href="#appearance">Appearance &amp; sizing</a>.</div>
+    <div class="note"><span class="lbl">Note · simulator</span> The revealed value is drawn in a secure capture-proof layer that the iOS <em>Simulator</em> renders blank. That is PCI protection working, not a bug. For simulator dev only, <code>dangerouslyDisableScreenProtection: true</code> draws it normally — never ship it on.</div>
+
+    <!-- ── Collect ──────────────────────────────────────────────── -->
+    <h3 id="collect" style="margin-top:34px">Collect <span class="pill creds">needs credentials</span></h3>
+    <p>Captures an external card's details in sealed native inputs and <em>tokenises</em> them at the acquirer. JS receives a token, never the PAN/CVV. Your backend then uses the token to fund a top-up.</p>
+    <div class="flow">
+      <span class="n">Collect: user types card</span><span class="arw">→</span>
+      <span class="n">SDK tokenises at acquirer</span><span class="arw">→</span>
+      <span class="n">your backend: estimate</span><span class="arw">→</span>
+      <span class="n">execute → 3DS URL</span>
+    </div>
+    <p class="muted">The card user must be enrolled at the acquirer. Billing details (<code>line1</code>, <code>zipCode</code>, <code>city</code>, <code>country</code>) and a ≥2-char Latin label are required by the tokenizer.</p>
+
+    <!-- ── 3DS ──────────────────────────────────────────────────── -->
+    <h3 id="threeds" style="margin-top:34px">3-D Secure <span class="pill nocreds">no credentials</span></h3>
+    <p>Presents the issuer challenge for a card payment. Your backend returns a 3DS URL from the top-up execute; the SDK renders the flow and reports the outcome. It makes no authenticated call and needs no credentials.</p>
+    <pre><code><span class="tok-k">val</span> threeDS = <span class="tok-f">WirexThreeDS</span>(testMode = isTestMode, logging = WirexLogging(WirexLogLevel.INFO, sink))
+<span class="tok-k">val</span> session = threeDS.<span class="tok-f">createSession</span>(url)   <span class="tok-c">// url from the top-up execute</span>
+session.<span class="tok-f">onSnapshot</span> { s -&gt; <span class="tok-c">/* s.state == WirexThreeDSState.SETTLED */</span> }
+session.<span class="tok-f">start</span>()
+<span class="tok-c">// render WirexThreeDSView(activity) full-size</span></code></pre>
+    <table>
+      <tr><th>State</th><th>Status</th></tr>
+      <tr><td><code>idle · loading · challenge · settled</code></td><td><code>completed · pending · failed · unknown</code></td></tr>
+    </table>
+    <div class="note"><span class="lbl">Note</span> <code>pending</code> means the payment is not settled <em>yet</em> — it is not an error. Reconcile the real outcome from your backend's status feed, not from the 3DS status alone.</div>
+
+    <!-- ── Wallet ───────────────────────────────────────────────── -->
+    <h3 id="wallet" style="margin-top:34px">Wallet — Apple&nbsp;Pay / Google&nbsp;Pay <span class="pill creds">needs credentials</span> <span class="pill device">real device</span></h3>
+    <p>Embeds the Wirex-hosted checkout frame. It renders a backend-priced quote and the platform wallet button; on tap it presents the native Pay sheet. Apple Pay here runs <em>in the web frame</em> (no app PassKit entitlement needed).</p>
+    <p>Three inputs, all from a backend estimate + your config:</p>
+    <table>
+      <tr><th>Input</th><th>What it is</th><th>From</th></tr>
+      <tr><td><code>quote.estimationId</code></td><td>A priced top-up.</td><td><strong>Your backend</strong> prices the top-up and hands the id to the app.</td></tr>
+      <tr><td><code>quote.sourceAmount</code></td><td>The fiat the sheet charges.</td><td>The priced estimate.</td></tr>
+      <tr><td><code>providerConfig</code></td><td>The wallet provider block (merchant id, networks, URLs), passed <strong>verbatim</strong>.</td><td>Your app config, shipped from your backend.</td></tr>
+    </table>
+    <div class="note"><span class="lbl">Note · who prices</span> Pricing is your backend's job — it owns the user's bearer and (in token mode) also mints the <code>checkoutToken</code>. The SDK never prices; it only consumes an <code>estimationId</code>. The <code>estimationId</code> and the <code>checkoutToken</code> are two independent values — the id is not derived from the token.</div>
+    <pre><code><span class="tok-k">val</span> config = <span class="tok-f">WirexWalletConfig</span>(WirexWalletEnvironment.<span class="tok-f">resolve</span>(name),
+    logging = WirexWalletLogging(WirexWalletLogLevel.INFO, sink), cache = cache)
+<span class="tok-k">val</span> checkout = <span class="tok-f">WirexWalletCheckoutView</span>(context,
+    config = config,
+    quote = WirexWalletQuote(estimationId = id, sourceAmount = WirexWalletMoney(<span class="tok-s">"10.00"</span>, <span class="tok-s">"EUR"</span>)),
+    providerConfig = WirexWalletProviderConfig.<span class="tok-f">fromJson</span>(providerBlock),  <span class="tok-c">// verbatim</span>
+    auth = <span class="tok-k">if</span> (tokenMode) WirexWalletCheckoutAuth(checkoutToken) <span class="tok-k">else null</span>)
+checkout.onEvent = { event -&gt; <span class="tok-c">/* Ready · SheetOpen · Token (legacy) / Executed (token mode) · … */</span> }</code></pre>
+    <div class="note warn"><span class="lbl">Gotcha · availability</span> To know whether to show a Pay button, start a <code>WirexWalletAvailabilityChecker(context, config, providerConfig)</code> and read its <code>onChange</code>. Give it a <em>real</em> provider block (with its <code>probe_url</code>); most emulators have no Google Pay, so it reports unavailable — the real answer there.</div>
+    <p><strong>Legacy vs token mode.</strong> Without <code>auth</code>, the sheet tokenises and emits a <code>token</code> event — your backend executes. With a backend-minted <code>checkoutToken</code>, the frame executes itself and emits <code>executing</code> / <code>executed</code> / <code>executeFailed</code>; nothing crosses JS. The checkout <strong>arms automatically</strong> when it has a valid quote + provider block; a new quote re-arms it.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 920 300" role="img" aria-label="Wallet top-up flow: backend prices an estimate, the app arms the checkout, the user taps Apple Pay, then either the legacy token path or token mode executes, and the result settles by backend status.">
+        <defs>
+          <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#7b8296" />
+          </marker>
+        </defs>
+        <!-- row 1 -->
+        <rect class="d-box" x="20" y="40" width="270" height="62" rx="9" />
+        <text class="d-h" x="34" y="64"><tspan fill="#7c79ff">1 · Backend</tspan></text>
+        <text class="d-t" x="34" y="86">price top-up → estimationId</text>
+        <rect class="d-box" x="325" y="40" width="270" height="62" rx="9" />
+        <text class="d-h" x="339" y="64"><tspan fill="#7c79ff">2 · App</tspan></text>
+        <text class="d-t" x="339" y="86">arm (quote + providerConfig)</text>
+        <rect class="d-box" x="630" y="40" width="270" height="62" rx="9" />
+        <text class="d-h" x="644" y="64"><tspan fill="#7c79ff">3 · User</tspan></text>
+        <text class="d-t" x="644" y="86">tap Pay → native sheet</text>
+        <path class="d-edge" d="M290 71 L325 71" marker-end="url(#arr2)" />
+        <path class="d-edge" d="M595 71 L630 71" marker-end="url(#arr2)" />
+
+        <!-- branch down from node 3 -->
+        <path class="d-edge" d="M765 102 L765 126 L460 126 L460 150" marker-end="url(#arr2)" />
+        <path class="d-edge" d="M765 126 L765 150" marker-end="url(#arr2)" />
+
+        <!-- row 2: two modes -->
+        <rect class="d-box" x="325" y="150" width="270" height="62" rx="9" />
+        <text class="d-h" x="339" y="174"><tspan fill="#2fd4c4">4a · Legacy</tspan></text>
+        <text class="d-t" x="339" y="196">onToken → backend execute</text>
+        <rect class="d-box" x="630" y="150" width="270" height="62" rx="9" />
+        <text class="d-h" x="644" y="174"><tspan fill="#2fd4c4">4b · Token mode</tspan></text>
+        <text class="d-t" x="644" y="196">frame executes (checkoutToken)</text>
+
+        <!-- converge to settle -->
+        <path class="d-edge" d="M460 212 L460 238 L612 238 L612 262" marker-end="url(#arr2)" />
+        <path class="d-edge" d="M765 212 L765 238 L612 238" />
+        <rect class="d-seal" x="462" y="262" width="300" height="34" rx="9" />
+        <text class="d-seal-t" x="612" y="284" text-anchor="middle">5 · settle by backend status</text>
+      </svg>
+      <figcaption>Wallet top-up — pricing and execution are the backend's; the SDK arms the checkout and reports the outcome.</figcaption>
+    </figure>
+
+    <div class="note"><span class="lbl">Note · device</span> The Pay sheet cannot present on the iOS Simulator (no Secure Element). The checkout still arms; only the sheet needs a real device with a provisioned card.</div>
+  </section>
+
+  <section id="appearance">
+    <h2><span class="num">03</span>Appearance &amp; sizing</h2>
+    <p>Each surface takes an appearance object (theme mode + tokens) and a strings object — the SDK ships <em>no</em> copy, so the host supplies every word it draws. Colours, radii and fonts are tokens you pass; the native view renders them.</p>
+    <h3>The sizing contract</h3>
+    <p>A native field cannot be sized from JS. The field view <em>measures its own content</em> and reports it through <code>onNaturalHeight</code>; apply that height to the row rather than hardcoding one. If a host ignores it and pins a box too small, the row clips its value (0.3.4+) instead of vanishing — but the right pattern is to measure.</p>
+    <div class="note tip"><span class="lbl">Tip</span> Full token lists live in the SDK's README (“Customization &amp; sizing”). The same contract holds on iOS, Android and Flutter.</div>
+  </section>
+
+  <section id="example">
+    <h2><span class="num">04</span>Running the example</h2>
+    <p>The SDK ships a runnable example that exercises all four surfaces against your own data — nothing is hard-coded. Enter your integration parameters and credentials (bearer, identity, card id, chain, provider config) in its <strong>Config</strong> tab; every screen reads them live, so one build covers every surface with no rebuild. The field set is the same across the iOS, Android and Flutter examples.</p>
+  </section>
+
+  <section id="endpoints">
+    <h2><span class="num">05</span>Backend calls</h2>
+    <p>Your backend performs the money-moving work with the credentials Wirex issues for your integration — pricing a top-up, executing it, minting a checkout token (token mode), and serving the wallet provider config. The SDK consumes their results; it makes none of these calls itself.</p>
+    <p class="muted">Authenticated calls carry <code>Authorization: Bearer</code>, <code>X-Chain-Id</code> and one identity header (<code>X-User-Email</code> or <code>X-User-Wallet</code>, never both). For the exact paths, request and response shapes, see the Wirex BaaS API reference Wirex provides with your integration.</p>
+  </section>
+
+  </div>
+</div>
+</main>
+
+<footer class="wrap">
+  Wirex Mobile SDK · Integration Guide. Field reference: the example's <code>PARTNER-CONFIG.md</code>. Customization tokens: the SDK README.
+</footer>
+</body>
+</html>
