@@ -3,12 +3,10 @@ package com.wirexapp.baas.example
 import android.app.Activity
 import android.graphics.Typeface
 import android.view.View
-import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
-import com.wirexapp.baas.cards.config.WirexSdkConfig
 import com.wirexapp.baas.cards.core.WirexEnvironment
 import com.wirexapp.baas.cards.core.WirexEnvironmentUnavailable
 import com.wirexapp.baas.cards.core.errors.WirexError
@@ -48,8 +46,6 @@ class RevealScreen(
     private val rows = mutableMapOf<WirexRevealField, WirexRevealFieldView>()
     private lateinit var rowContainer: LinearLayout
     private lateinit var status: TextView
-    private lateinit var credentialsField: EditText
-    private lateinit var credentialsStatus: TextView
 
     private var masked = true
 
@@ -145,9 +141,6 @@ class RevealScreen(
                 },
                 "New session" to {
                     createSession()
-                    if (::credentialsStatus.isInitialized) {
-                        credentialsStatus.text = LiveConfig.credentialsStatus()
-                    }
                 },
                 "Decline next" to {
                     credentials.declineNextActionToken = true
@@ -155,13 +148,13 @@ class RevealScreen(
                 },
             ),
         )
-        root.addView(buildCredentialsPanel())
-
         // Restyled from the Appearance tab, along with the collect form.
         LiveConfig.onAppearanceChanged {
             restyle()
             Ui.applyBackdrop(root, LiveConfig.isDarkMode(activity))
         }
+        // A value typed on the Config tab: rebuild the session only if the card it captured changed.
+        LiveConfig.onCredentialsChanged { recreateSessionIfIdentityChanged() }
         Ui.applyBackdrop(root, LiveConfig.isDarkMode(activity))
 
         createSession()
@@ -180,7 +173,7 @@ class RevealScreen(
     // mistake, and a known name the SDK has no endpoints for is a configuration issue. The chain id
     // is the host's own value (`X-Chain-Id`), supplied with the credentials; without one the SDK refuses.
     private fun environment(): WirexEnvironment =
-        WirexEnvironment.resolve(WirexSdkConfig.ENVIRONMENT, chainId = LiveConfig.credential("chainId"))
+        WirexEnvironment.resolve(LiveConfig.environment, chainId = LiveConfig.credential("chainId"))
 
     /** What the screen shows instead of itself when there is no environment to talk to. */
     private fun unavailableScreen(unavailable: WirexEnvironmentUnavailable): View =
@@ -294,51 +287,6 @@ class RevealScreen(
             append("\nmasked: ").append(masked)
             append("   capture-protected: ").append(protection ?: "unknown")
         }
-    }
-
-    /**
-     * Paste any subset of the keys. Absent keys keep their current values, so an expired
-     * `actionToken` is replaced by pasting only that one — no rebuild, nothing else disturbed.
-     */
-    private fun buildCredentialsPanel(): View {
-        credentialsField = Ui.jsonField(activity, """{ "actionToken": "" }""")
-        credentialsStatus = Ui.mono(activity).apply {
-            textSize = 10f
-            text = LiveConfig.credentialsStatus()
-        }
-
-        val body = LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(
-                Ui.caption(
-                    activity,
-                    "keys: bearer · email · wallet · cardId · actionToken · cardholderName — " +
-                        "merged, absent kept",
-                ),
-            )
-            addView(credentialsField, Ui.matchWidth())
-            addView(
-                Ui.buttonRow(
-                    activity,
-                    "Apply credentials" to {
-                        when (val outcome = LiveConfig.applyCredentials(credentialsField.text.toString())) {
-                            is ConfigOutcome.Merged -> {
-                                toast(outcome.summary)
-                                credentialsStatus.text = LiveConfig.credentialsStatus()
-                                // A session captures `cardId` and `cardholderName` at creation; only
-                                // the bearer and action token are read lazily. Without this, a
-                                // corrected card id never reached the session and every backend field
-                                // failed.
-                                recreateSessionIfIdentityChanged()
-                            }
-                            is ConfigOutcome.Rejected -> toast("credentials: ${outcome.reason}")
-                        }
-                    },
-                ),
-            )
-            addView(credentialsStatus)
-        }
-        return Ui.panel(activity, "Credentials (JSON)", body)
     }
 
     private fun toast(message: String) =

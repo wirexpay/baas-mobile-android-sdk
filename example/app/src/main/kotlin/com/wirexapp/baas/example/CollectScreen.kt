@@ -23,7 +23,6 @@ import com.wirexapp.baas.cards.collect.WirexTopUpTokenizeParams
 import com.wirexapp.baas.cards.collect.WirexCollectStrings
 import com.wirexapp.baas.cards.collect.ui.WirexCollectForm
 import com.wirexapp.baas.cards.core.surface.WirexErrorLine
-import com.wirexapp.baas.cards.config.WirexSdkConfig
 import com.wirexapp.baas.cards.core.WirexEnvironment
 import com.wirexapp.baas.cards.core.WirexEnvironmentUnavailable
 import com.wirexapp.baas.cards.core.errors.WirexError
@@ -168,6 +167,10 @@ class CollectScreen(
             form?.apply(LiveConfig.appearance(activity))
             Ui.applyBackdrop(root, LiveConfig.isDarkMode(activity))
         }
+        // A value typed on the Config tab: rebuild the form so the fresh environment / chainId /
+        // credentials take effect. A rebuild clears what is typed, which is honest — the connection
+        // the form talks over has changed.
+        LiveConfig.onCredentialsChanged { rebuildForm() }
         Ui.applyBackdrop(root, LiveConfig.isDarkMode(activity))
 
         rebuildForm()
@@ -180,7 +183,7 @@ class CollectScreen(
         // A fresh instance per rebuild, because the environment name and the credentials can change
         // between rebuilds. The same reason the reveal screen rebuilds its session on Apply.
         val environment = try {
-            WirexEnvironment.resolve(WirexSdkConfig.ENVIRONMENT, chainId = LiveConfig.credential("chainId"))
+            WirexEnvironment.resolve(LiveConfig.environment, chainId = LiveConfig.credential("chainId"))
         } catch (unavailable: WirexEnvironmentUnavailable) {
             // Shown rather than swallowed: the two reasons are fixed in different places, and the
             // message already distinguishes them.

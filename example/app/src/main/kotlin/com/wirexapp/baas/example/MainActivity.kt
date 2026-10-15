@@ -10,13 +10,11 @@ import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.wirexapp.baas.cards.config.WirexSdkConfig
-import com.wirexapp.baas.cards.core.WirexEnvironment
 import com.wirexapp.baas.cards.core.logging.WirexLogLevel
 import com.wirexapp.baas.cards.core.logging.WirexLogSink
 
 /**
- * Four tabs, the same four the iOS example has: **Reveal**, **Collect**, **3DS**, **Appearance**.
+ * Six tabs, the same set every platform has: **Config**, **Reveal**, **Collect**, **3DS**, **Wallet**, **Appearance**.
  *
  * A bottom button bar rather than `BottomNavigationView`: Material would be a dependency this example
  * does not otherwise need, and the point of the screen is the SDK's own views, not the chrome around
@@ -59,6 +57,9 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
         }
 
+        // Config is first: a per-field editor over LiveConfig, the single store the surfaces read. It
+        // returns its own keyboard-aware scroller, so it is added directly rather than wrapped again.
+        addTab(bar, "Config", ConfigScreen(this).build())
         // Each screen wraps its own content in a scroller, so the keyboard handling belongs to the
         // screen that has fields rather than to the container.
         addTab(bar, "Reveal", Ui.scroller(this, reveal.build()) { currentFocus })
@@ -79,8 +80,8 @@ class MainActivity : AppCompatActivity() {
             ) { currentFocus },
         )
         addTab(bar, "Appearance", Ui.scroller(this, AppearanceScreen(this).build()) { currentFocus })
-        // `-e screen collect|threeds|wallet|appearance` opens straight onto that tab, for scripted runs.
-        select(listOf("reveal", "collect", "threeds", "wallet", "appearance").indexOf(intent?.getStringExtra("screen")).coerceAtLeast(0))
+        // `-e screen config|collect|threeds|wallet|appearance` opens straight onto that tab, for scripted runs.
+        select(listOf("config", "reveal", "collect", "threeds", "wallet", "appearance").indexOf(intent?.getStringExtra("screen")).coerceAtLeast(0))
 
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL

@@ -14,31 +14,29 @@ Pay). One Maven artifact, `com.wirexapp.baas:mobile-sdk`, carries all four surfa
 The app depends on the published coordinate `com.wirexapp.baas:mobile-sdk:0.3.7`
 (`app/build.gradle.kts`), resolved from Maven Central.
 
-## The environment
+## Configure at runtime
 
-- Card surfaces: `WirexSdkConfig.ENVIRONMENT`
-  (`app/src/main/kotlin/com/wirexapp/baas/cards/config/WirexSdkConfig.kt`).
-- Wallet surface: `app/src/main/assets/wirex-wallet-sdk.json`.
+Nothing is compiled in. The **Config** tab is a per-field editor over `LiveConfig`, the single store
+every surface reads live — type a value and the next call picks it up, no rebuild. It holds:
 
-Both name an environment (`test` / `production`) — a name, never a URL; the SDK maps it onto the hosts
-it holds. Set them to the environment Wirex assigned.
+- the **environment** (`test` / `production`), a name the SDK maps onto the hosts it ships with;
+- integration parameters — chain id, user email, user wallet, card id, cardholder name;
+- secrets (bearer, step-up action token), held in memory only and never persisted or logged.
 
-## Enter credentials at runtime
-
-Nothing is compiled in. Credentials live in `LiveConfig`, filled at runtime:
-
-**Paste JSON** on the Reveal or Collect screen (the credentials box) —
-`{"bearer":"…","email":"…","cardId":"…","chainId":"…","actionToken":"…","cardholderName":"…"}`.
-Credentials are never passed as intent extras — a bearer in an extra is visible in `logcat` and `dumpsys`.
+Credentials are never passed as intent extras — a bearer in an extra is visible in `logcat` and
+`dumpsys`. The Wallet surface resolves its own environment from
+`app/src/main/assets/wirex-wallet-sdk.json`.
 
 ## The surfaces
 
 | Tab | What it shows |
 |---|---|
+| **Config** | a per-field editor for the environment, integration parameters and secrets, shared by every surface |
 | **Reveal** | the cardholder's own PAN / expiry / CVV / PIN in sealed native views |
 | **Collect** | a sealed form that tokenizes an external funding card at the acquirer |
 | **3DS** | paste a top-up orchestrator URL → the issuer challenge, and the outcome |
 | **Wallet** | the hosted Apple Pay / Google Pay checkout (paste a provider block, build a quote — legacy tokenise flow) |
+| **Appearance** | restyle every sealed surface at once — presets or a pasted token document |
 
 The field contract is the same across the React Native / iOS / Flutter examples — see
 `../PARTNER-CONFIG.md`.

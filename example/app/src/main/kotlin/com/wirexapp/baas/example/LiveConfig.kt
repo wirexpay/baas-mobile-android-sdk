@@ -39,7 +39,7 @@ object LiveConfig {
 
     private val lock = Any()
 
-    private val KNOWN = listOf("bearer", "email", "wallet", "cardId", "chainId", "actionToken", "cardholderName")
+    private val KNOWN = listOf("environment", "bearer", "email", "wallet", "cardId", "chainId", "actionToken", "cardholderName")
 
     /** Called once from the activity with whatever came in on the launch intent. */
     fun seed(values: Map<String, String>) = synchronized(lock) {
@@ -47,6 +47,32 @@ object LiveConfig {
     }
 
     fun credential(key: String): String = synchronized(lock) { credentials[key] ?: "" }
+
+    /**
+     * Writes a single key — the per-field Config tab's edit. An EMPTY value CLEARS the key, matching
+     * [applyCredentials]. `notify` is false while a field is mid-edit (every keystroke) and true when
+     * it loses focus, so a screen rebuilds once on blur rather than on every character.
+     */
+    fun setCredential(key: String, value: String, notify: Boolean = true) {
+        synchronized(lock) {
+            if (value.isEmpty()) credentials.remove(key) else credentials[key] = value
+        }
+        if (notify) notifyCredentialsChanged()
+    }
+
+    /** The SDK environment NAME the Config tab selected, defaulting to `test`. A name, never a URL. */
+    val environment: String
+        get() = credential("environment").ifEmpty { "test" }
+
+    /** `test` everywhere but the production name — mirrors `exampleConfig.ts`. */
+    val isTestMode: Boolean
+        get() = environment != "production"
+
+    /** Clears every credential / identity value back to empty (environment falls back to `test`). */
+    fun resetCredentials() {
+        synchronized(lock) { credentials.clear() }
+        notifyCredentialsChanged()
+    }
 
     fun applyCredentials(json: String): ConfigOutcome {
         val parsed = parse(json) ?: return ConfigOutcome.Rejected("not valid JSON")
@@ -157,6 +183,20 @@ object LiveConfig {
      * must never clear the collect form or unmask a reveal row.
      */
     fun onAppearanceChanged(listener: () -> Unit) = synchronized(lock) { listeners += listener }
+
+    private val credentialsListeners = mutableListOf<() -> Unit>()
+
+    /**
+     * Notified whenever a credential / identity value changes, so a screen can rebuild. Separate from
+     * [onAppearanceChanged]: a credential change may have to rebuild a session or a form, an
+     * appearance change must never do either.
+     */
+    fun onCredentialsChanged(listener: () -> Unit) = synchronized(lock) { credentialsListeners += listener }
+
+    fun notifyCredentialsChanged() {
+        val snapshot = synchronized(lock) { credentialsListeners.toList() }
+        snapshot.forEach { it() }
+    }
 
     /** The host's light / dark / system choice, shared by every screen. */
     /**
