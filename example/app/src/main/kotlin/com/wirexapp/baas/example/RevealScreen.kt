@@ -40,7 +40,10 @@ class RevealScreen(
     private val activity: androidx.appcompat.app.AppCompatActivity,
     private val credentials: HostCredentialProvider,
 ) {
-    private lateinit var reveal: WirexReveal
+    // Nullable: the SDK is (re)built lazily from the current environment + chain id, which are read at
+    // CONFIGURE time — so a chain id typed on the Config tab after this screen first appeared has to
+    // reconfigure, not just rebuild the session. Null while no environment is resolvable yet.
+    private var reveal: WirexReveal? = null
     private var session: WirexRevealSession? = null
 
     private val rows = mutableMapOf<WirexRevealField, WirexRevealFieldView>()
@@ -51,6 +54,9 @@ class RevealScreen(
 
     /** What the live session was built from, so a re-apply can tell whether it is stale. */
     private var sessionIdentity = ""
+
+    /** The environment + chain id the SDK was last configured with, so a change can reconfigure. */
+    private var lastConfigKey = ""
 
     /** `cardholderName` is not sensitive and is not fetched — the host already has it. */
     private val fields = listOf(
@@ -84,26 +90,10 @@ class RevealScreen(
     )
 
     fun build(): View {
-        // The environment is resolved BEFORE anything is built, and a failure is drawn rather than
-        // thrown. An example that dies on launch teaches nothing: an unknown or unavailable
-        // environment has to be legible on screen rather than in a stack trace.
-        val resolved = try {
-            environment()
-        } catch (unavailable: WirexEnvironmentUnavailable) {
-            return unavailableScreen(unavailable)
-        }
-
-        reveal = WirexReveal(
-            // The environment is a NAME (e.g. "test" / "production"); the SDK resolves it to the
-            // endpoints it ships with. The app passes a name, never a URL.
-            environment = resolved,
-            credentials = credentials,
-            // The ready-made configuration: everything the SDK says, to logcat, nothing to
-            // construct. Another level is `logcatLogging(level)`, and the collect screen passes its
-            // own sink instead — all three are supported.
-            logging = WirexLogging.DEBUG,
-        )
-
+        // The layout is built UNCONDITIONALLY — the SDK is configured lazily in
+        // [configureAndCreateSession], which re-runs whenever a Config value changes. An example that
+        // returned a dead "unavailable" screen when no chain id was set could never recover once the
+        // chain id was typed on the Config tab, because the chain id is read at configure time.
         val root = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(32, 24, 32, 32)
@@ -153,11 +143,13 @@ class RevealScreen(
             restyle()
             Ui.applyBackdrop(root, LiveConfig.isDarkMode(activity))
         }
-        // A value typed on the Config tab: rebuild the session only if the card it captured changed.
-        LiveConfig.onCredentialsChanged { recreateSessionIfIdentityChanged() }
+        // A value typed on the Config tab: reconfigure the SDK (the chain id / environment are read at
+        // configure time) and rebuild the session as needed. This is also what recovers the screen
+        // from "unavailable" once the chain id is supplied.
+        LiveConfig.onCredentialsChanged { configureAndCreateSession() }
         Ui.applyBackdrop(root, LiveConfig.isDarkMode(activity))
 
-        createSession()
+        configureAndCreateSession()
         return root
     }
 
@@ -175,23 +167,40 @@ class RevealScreen(
     private fun environment(): WirexEnvironment =
         WirexEnvironment.resolve(LiveConfig.environment, chainId = LiveConfig.credential("chainId"))
 
-    /** What the screen shows instead of itself when there is no environment to talk to. */
-    private fun unavailableScreen(unavailable: WirexEnvironmentUnavailable): View =
-        LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(32, 24, 32, 32)
-            addView(Ui.heading(activity, "Reveal — unavailable"))
-            addView(Ui.caption(activity, unavailable.message ?: "no environment"))
-            addView(
-                Ui.caption(
-                    activity,
-                    "This is the expected state until the environment is configured — supply the " +
-                        "chain id in the credentials to load.",
-                ),
-            )
+    /**
+     * (Re)configures the SDK for the current environment + chain id, then opens a session.
+     *
+     * The chain id and environment are read at CONFIGURE time, so a value typed on the Config tab must
+     * reconfigure here — not merely rebuild the session. Recovers from "unavailable" once the chain id
+     * is supplied, and avoids needless rebuilds when an unrelated credential (bearer, email) changes.
+     */
+    private fun configureAndCreateSession() {
+        val resolved = try {
+            environment()
+        } catch (unavailable: WirexEnvironmentUnavailable) {
+            reveal = null
+            lastConfigKey = ""
+            session = null
+            rows.values.forEach { it.release() }
+            rows.clear()
+            rowContainer.removeAllViews()
+            status.text = "unavailable — ${unavailable.message ?: "set the Chain ID on the Config tab, then it loads"}"
+            return
         }
+        val key = LiveConfig.environment + "|" + LiveConfig.credential("chainId")
+        val reconfigured = reveal == null || key != lastConfigKey
+        if (reconfigured) {
+            reveal = WirexReveal(environment = resolved, credentials = credentials, logging = WirexLogging.DEBUG)
+            lastConfigKey = key
+        }
+        val identity = LiveConfig.credential("cardId") + "|" + LiveConfig.credential("cardholderName")
+        if (reconfigured || session == null || identity != sessionIdentity) {
+            createSession()
+        }
+    }
 
     private fun createSession() {
+        val sdk = reveal ?: return
         rows.values.forEach { it.release() }
         rows.clear()
         rowContainer.removeAllViews()
@@ -201,7 +210,7 @@ class RevealScreen(
         sessionIdentity =
             LiveConfig.credential("cardId") + "|" + LiveConfig.credential("cardholderName")
         val created = try {
-            reveal.session(
+            sdk.session(
                 LiveConfig.credential("cardId"),
                 fields,
                 cardholderName = LiveConfig.credential("cardholderName"),
@@ -247,20 +256,6 @@ class RevealScreen(
         masked = next
         rows.values.forEach { if (next) it.mask() else it.reveal() }
         session?.let { renderStatus(it.snapshot) }
-    }
-
-    /**
-     * Rebuilds the session when a credential the session CAPTURED has changed.
-     *
-     * Not unconditional: a rebuild drops loaded values and re-masks, so doing it for a pasted
-     * `actionToken` — read lazily, therefore already live — would throw away work for nothing.
-     */
-    private fun recreateSessionIfIdentityChanged() {
-        val identity = LiveConfig.credential("cardId") + "|" + LiveConfig.credential("cardholderName")
-        if (identity == sessionIdentity) return
-        sessionIdentity = identity
-        createSession()
-        toast("session rebuilt — cardId or cardholderName changed")
     }
 
     /**
