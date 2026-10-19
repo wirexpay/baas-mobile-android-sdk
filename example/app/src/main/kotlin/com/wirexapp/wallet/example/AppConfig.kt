@@ -1,57 +1,44 @@
 package com.wirexapp.wallet.example
 
 import android.content.Context
+import com.wirexapp.baas.example.LiveConfig
 import com.wirexapp.baas.cards.core.WirexEnvironmentUnavailable
 import com.wirexapp.wallet.topup.WirexWalletAvailabilityCache
 import com.wirexapp.wallet.topup.WirexWalletEnvironment
-import org.json.JSONObject
 
 /**
- * How this example chooses an environment: `assets/wirex-wallet-sdk.json` names one, and
- * `WirexWalletEnvironment.resolve` turns the name into the frames origin the SDK build carries. The
- * file cannot contain a URL; there is nothing a URL could be passed to. An unknown environment name
- * resolves to nothing and [error] names what was missing; the published SDK carries the hosts.
+ * How this example chooses an environment: the NAME selected on the Config tab (`LiveConfig.environment`,
+ * `test` / `production`), resolved by `WirexWalletEnvironment.resolve` into the frames origin the SDK
+ * build carries on every use. Nothing here is a URL; there is nothing a URL could be passed to.
  *
- * A failure is carried as [environment] == null with its reason rather than a crash, so every screen
- * can show WHY it is disabled — the About screen spells it out. Never a fallback.
+ * Resolved lazily rather than once at launch, so flipping the environment chip after the app started
+ * reaches the Wallet screens too. A failure is carried as [environment] == null with its reason rather
+ * than a crash, so every screen can show WHY it is disabled. Never a fallback.
  */
-class AppConfig private constructor(
-    val environmentName: String,
-    val environment: WirexWalletEnvironment?,
-    val error: String?,
-) {
+class AppConfig private constructor() {
+
+    val environmentName: String get() = LiveConfig.environment
+    val environment: WirexWalletEnvironment? get() = resolve().first
+    val error: String? get() = resolve().second
+
+    private fun resolve(): Pair<WirexWalletEnvironment?, String?> {
+        val name = environmentName
+        return try {
+            WirexWalletEnvironment.resolve(name) to null
+        } catch (unknown: WirexEnvironmentUnavailable.UnknownName) {
+            null to ("The Config tab names an environment this build does not have: \"$name\". " +
+                "Known: ${unknown.known.joinToString(", ")}. The environment is a name, never a URL, " +
+                "and there is no fallback.")
+        } catch (notBuilt: WirexEnvironmentUnavailable.NotBuilt) {
+            null to "This build has no configuration for \"$name\". Set the environment Wirex assigned (test / production)."
+        } catch (unavailable: WirexEnvironmentUnavailable) {
+            null to "\"$name\" cannot be used: ${unavailable.message}"
+        }
+    }
 
     companion object {
-        const val CONFIG_ASSET = "wirex-wallet-sdk.json"
-
-        fun load(context: Context): AppConfig {
-            val name = try {
-                val text = context.assets.open(CONFIG_ASSET).bufferedReader().use { it.readText() }
-                JSONObject(text).optString("environment", "")
-            } catch (e: Exception) {
-                ""
-            }
-            return try {
-                AppConfig(name, WirexWalletEnvironment.resolve(name), error = null)
-            } catch (unknown: WirexEnvironmentUnavailable.UnknownName) {
-                AppConfig(
-                    name,
-                    null,
-                    "$CONFIG_ASSET names an environment this build does not have: \"$name\". " +
-                        "Known: ${unknown.known.joinToString(", ")}. The environment is a name, never a URL, " +
-                        "and there is no fallback.",
-                )
-            } catch (notBuilt: WirexEnvironmentUnavailable.NotBuilt) {
-                AppConfig(
-                    name,
-                    null,
-                    "This build has no configuration for \"$name\". Set the environment Wirex " +
-                        "assigned (test / production).",
-                )
-            } catch (unavailable: WirexEnvironmentUnavailable) {
-                AppConfig(name, null, "\"$name\" cannot be used: ${unavailable.message}")
-            }
-        }
+        @Suppress("UNUSED_PARAMETER")
+        fun load(context: Context): AppConfig = AppConfig()
     }
 }
 

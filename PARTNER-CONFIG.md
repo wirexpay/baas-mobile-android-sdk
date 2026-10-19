@@ -22,6 +22,7 @@ the provider block, or fetches an estimate with your bearer.
 | `cardId` | the card Reveal / Collect act on | partner (a provisioned card) |
 | `cardholderName` | display name on Collect | partner |
 | `walletAmount` / `walletCurrency` / `walletProvider` | the top-up quote the Wallet screens arm with | partner (from an estimate) |
+| `baasApiUrl` | the BaaS API base URL (https) for the Wallet screen's **Fetch estimate** helper; pricing is the partner backend's job, the helper only verifies a bearer | **Wirex**, per environment |
 | `returnUrl` | Custom Tab App Link — **https, verified for this app's package** (`assetlinks.json`) | partner |
 
 ### Secrets (memory only — never persisted, never logged)

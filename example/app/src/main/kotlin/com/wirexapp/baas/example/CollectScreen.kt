@@ -167,10 +167,10 @@ class CollectScreen(
             form?.apply(LiveConfig.appearance(activity))
             Ui.applyBackdrop(root, LiveConfig.isDarkMode(activity))
         }
-        // A value typed on the Config tab: rebuild the form so the fresh environment / chainId /
-        // credentials take effect. A rebuild clears what is typed, which is honest — the connection
-        // the form talks over has changed.
-        LiveConfig.onCredentialsChanged { rebuildForm() }
+        // The environment or chain id changed on the Config tab: rebuild the form so the fresh
+        // connection takes effect. A rebuild clears what is typed, which is honest — the connection
+        // the form talks over has changed. A pasted bearer is read per call and does NOT rebuild.
+        LiveConfig.onCredentialsChanged { if (currentConfigKey() != lastConfigKey) rebuildForm() }
         Ui.applyBackdrop(root, LiveConfig.isDarkMode(activity))
 
         rebuildForm()
@@ -179,7 +179,12 @@ class CollectScreen(
 
     // ── The SDK ─────────────────────────────────────────────────────────────────
 
+    /** The environment + chain id the form was built for; only those are read when it is built. */
+    private var lastConfigKey = ""
+    private fun currentConfigKey(): String = LiveConfig.environment + "|" + LiveConfig.credential("chainId")
+
     private fun rebuildForm() {
+        lastConfigKey = currentConfigKey()
         // A fresh instance per rebuild, because the environment name and the credentials can change
         // between rebuilds. The same reason the reveal screen rebuilds its session on Apply.
         val environment = try {
