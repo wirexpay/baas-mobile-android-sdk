@@ -1,11 +1,10 @@
 # Example configuration — the debug menu
 
 This example is one binary that exercises **every SDK surface** against **any partner's data**. Nothing
-is hard-coded: you enter the integration parameters and credentials into the running build and every
-screen reads them live. The React Native example has a **Config** tab for this; the iOS, Android and
-Flutter examples take a pasted JSON with the same fields on their Reveal / Collect screens, and the
-Wallet screen takes the estimation id and provider block directly. The same field set is the contract for the
-iOS, Android and Flutter examples, so QA enters the same values everywhere.
+is hard-coded: the **Config** tab is a per-field editor for the integration parameters and credentials, and
+every screen reads it live. The same field set is the contract for the iOS, Android, React Native and Flutter
+examples, so QA enters the same values everywhere; the Wallet screen additionally takes the estimation id and
+the provider block, or fetches an estimate with your bearer.
 
 ## Fields
 
