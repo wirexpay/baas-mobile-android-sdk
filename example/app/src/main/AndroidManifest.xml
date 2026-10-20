@@ -11,10 +11,22 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- The wallet Custom Tab returns here via the https App Link passed as `returnUrl`.
+                 A real host uses its own verified domain (assetlinks.json) so the tap returns straight
+                 to the app; this declares the example's demo host. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                    android:host="wirex-sdk-example.wirexapp.tech"
+                    android:pathPrefix="/wallet-return" />
             </intent-filter>
         </activity>
     </application>

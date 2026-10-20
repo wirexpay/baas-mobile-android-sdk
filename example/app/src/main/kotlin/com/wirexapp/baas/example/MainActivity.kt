@@ -1,5 +1,6 @@
 package com.wirexapp.baas.example
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -31,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var container: FrameLayout
     private lateinit var reveal: RevealScreen
     private lateinit var threeDS: ThreeDSScreen
+    private lateinit var walletLaunch: com.wirexapp.wallet.example.LaunchScreen
     private val tabs = mutableListOf<Pair<Button, View>>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +49,19 @@ class MainActivity : AppCompatActivity() {
         reveal.release()
         threeDS.release()
         super.onDestroy()
+    }
+
+    /**
+     * The wallet checkout's Custom Tab returns through an https App Link. `singleTask` (see the manifest)
+     * delivers it here on the running instance rather than a new one, so the launch screen can read the
+     * `estimation_id` / `outcome` it carries.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.action == Intent.ACTION_VIEW) {
+            intent.dataString?.let { walletLaunch.onReturn(it) }
+        }
     }
 
     private fun buildLayout(): View {
@@ -67,18 +82,14 @@ class MainActivity : AppCompatActivity() {
         // Not in a scroller: the step-up view fills the tab.
         addTab(bar, "3DS", threeDS.build())
         // Wallet top-up (Apple Pay / Google Pay). Part of the same SDK artifact; it resolves the
-        // environment name selected on the Config tab on every use.
-        addTab(
-            bar,
-            "Wallet",
-            Ui.scroller(
-                this,
-                com.wirexapp.wallet.example.CheckoutScreen(
-                    this,
-                    com.wirexapp.wallet.example.AppConfig.load(this),
-                ).build(),
-            ) { currentFocus },
+        // environment name selected on the Config tab on every use. The checkout opens top-level in a
+        // Chrome Custom Tab — Google Pay validates the hosting app's package, which a WebView cannot
+        // satisfy — and returns through the https App Link handled in onNewIntent.
+        walletLaunch = com.wirexapp.wallet.example.LaunchScreen(
+            this,
+            com.wirexapp.wallet.example.AppConfig.load(this),
         )
+        addTab(bar, "Wallet", Ui.scroller(this, walletLaunch.build()) { currentFocus })
         addTab(bar, "Appearance", Ui.scroller(this, AppearanceScreen(this).build()) { currentFocus })
         // `-e screen config|collect|threeds|wallet|appearance` opens straight onto that tab, for scripted runs.
         select(listOf("config", "reveal", "collect", "threeds", "wallet", "appearance").indexOf(intent?.getStringExtra("screen")).coerceAtLeast(0))
