@@ -38,4 +38,6 @@ dependencies {
     implementation("com.wirexapp.baas:mobile-sdk:$sdkVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("androidx.appcompat:appcompat:1.7.0")
+    // The wallet checkout opens top-level in a Chrome Custom Tab (CustomTabsIntent).
+    implementation("androidx.browser:browser:1.8.0")
 }
