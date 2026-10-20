@@ -66,8 +66,8 @@ class MainActivity : AppCompatActivity() {
         addTab(bar, "Collect", Ui.scroller(this, CollectScreen(this, credentials).build()) { currentFocus })
         // Not in a scroller: the step-up view fills the tab.
         addTab(bar, "3DS", threeDS.build())
-        // Wallet top-up (Apple Pay / Google Pay). Part of the same SDK artifact; it resolves its own
-        // environment from assets/wirex-wallet-sdk.json.
+        // Wallet top-up (Apple Pay / Google Pay). Part of the same SDK artifact; it resolves the
+        // environment name selected on the Config tab on every use.
         addTab(
             bar,
             "Wallet",

@@ -24,8 +24,8 @@ every surface reads live — type a value and the next call picks it up, no rebu
 - secrets (bearer, step-up action token), held in memory only and never persisted or logged.
 
 Credentials are never passed as intent extras — a bearer in an extra is visible in `logcat` and
-`dumpsys`. The Wallet surface resolves its own environment from
-`app/src/main/assets/wirex-wallet-sdk.json`.
+`dumpsys`. The Wallet surface takes the same environment name
+from the Config tab.
 
 ## The surfaces
 

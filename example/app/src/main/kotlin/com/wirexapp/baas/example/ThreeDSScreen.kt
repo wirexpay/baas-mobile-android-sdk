@@ -26,7 +26,18 @@ import com.wirexapp.baas.cards.threeds.ui.WirexThreeDSView
  */
 class ThreeDSScreen(private val activity: Activity, private val launchUrl: String) {
 
-    private val threeDS = WirexThreeDS(testMode = true, logging = WirexLogging(WirexLogLevel.INFO, ConsoleLogSink))
+    /** Rebuilt whenever the Config tab's environment changes: `testMode` is read at construction. */
+    private var threeDS: WirexThreeDS? = null
+    private var threeDSTestMode: Boolean? = null
+
+    private fun currentThreeDS(): WirexThreeDS {
+        val testMode = LiveConfig.isTestMode
+        threeDS?.takeIf { threeDSTestMode == testMode }?.let { return it }
+        return WirexThreeDS(testMode = testMode, logging = WirexLogging(WirexLogLevel.INFO, ConsoleLogSink)).also {
+            threeDS = it
+            threeDSTestMode = testMode
+        }
+    }
 
     private lateinit var url: EditText
     private lateinit var start: Button
@@ -92,7 +103,7 @@ class ThreeDSScreen(private val activity: Activity, private val launchUrl: Strin
 
     private fun start() {
         session?.destroy()
-        val next = threeDS.session(orchestratorUrl = url.text.toString())
+        val next = currentThreeDS().session(orchestratorUrl = url.text.toString())
         session = next
         next.onChange = ::render
         challengeView.bind(next)

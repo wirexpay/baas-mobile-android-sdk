@@ -1,11 +1,10 @@
 # Example configuration — the debug menu
 
 This example is one binary that exercises **every SDK surface** against **any partner's data**. Nothing
-is hard-coded: you enter the integration parameters and credentials into the running build and every
-screen reads them live. The React Native example has a **Config** tab for this; the iOS, Android and
-Flutter examples take a pasted JSON with the same fields on their Reveal / Collect screens, and the
-Wallet screen takes the estimation id and provider block directly. The same field set is the contract for the
-iOS, Android and Flutter examples, so QA enters the same values everywhere.
+is hard-coded: the **Config** tab is a per-field editor for the integration parameters and credentials, and
+every screen reads it live. The same field set is the contract for the iOS, Android, React Native and Flutter
+examples, so QA enters the same values everywhere; the Wallet screen additionally takes the estimation id and
+the provider block, or fetches an estimate with your bearer.
 
 ## Fields
 
@@ -23,6 +22,7 @@ iOS, Android and Flutter examples, so QA enters the same values everywhere.
 | `cardId` | the card Reveal / Collect act on | partner (a provisioned card) |
 | `cardholderName` | display name on Collect | partner |
 | `walletAmount` / `walletCurrency` / `walletProvider` | the top-up quote the Wallet screens arm with | partner (from an estimate) |
+| `baasApiUrl` | the BaaS API base URL (https) for the Wallet screen's **Fetch estimate** helper; pricing is the partner backend's job, the helper only verifies a bearer | **Wirex**, per environment |
 | `returnUrl` | Custom Tab App Link — **https, verified for this app's package** (`assetlinks.json`) | partner |
 
 ### Secrets (memory only — never persisted, never logged)

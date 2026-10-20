@@ -271,8 +271,9 @@ class CheckoutScreen(private val context: Context, private val appConfig: AppCon
         val chainId = LiveConfig.credential("chainId")
         val wallet = LiveConfig.credential("wallet")
         val email = LiveConfig.credential("email")
-        if (base.isEmpty() || bearer.isEmpty()) {
-            log.append("Fetch estimate: set BaaS API URL + bearer on the Config tab")
+        // https only: the bearer goes to whatever is typed here. The chain id is required by the API.
+        if (!base.startsWith("https://") || bearer.isEmpty() || chainId.isEmpty()) {
+            log.append("Fetch estimate: set an https BaaS API URL, a bearer and the chain id on the Config tab")
             return
         }
         val identity: Pair<String, String> = when {
@@ -332,7 +333,7 @@ class CheckoutScreen(private val context: Context, private val appConfig: AppCon
         val payload = JSONObject()
             .put("destination_amount", toBaseUnits(amount, decimals))
             .put("destination_token_address", tokenAddress)
-            .put("payment_method", "apple_pay")
+            .put("payment_method", "google_pay")
         conn.outputStream.use { it.write(payload.toString().toByteArray()) }
         if (conn.responseCode != 200) {
             val err = (conn.errorStream ?: conn.inputStream)?.bufferedReader()?.use { it.readText() } ?: ""
