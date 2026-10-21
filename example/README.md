@@ -11,7 +11,7 @@ Pay). One Maven artifact, `com.wirexapp.baas:mobile-sdk`, carries all four surfa
 # or open the folder in Android Studio and Run
 ```
 
-The app depends on the published coordinate `com.wirexapp.baas:mobile-sdk:0.3.7`
+The app depends on the published coordinate `com.wirexapp.baas:mobile-sdk:0.3.13`
 (`app/build.gradle.kts`), resolved from Maven Central.
 
 ## Configure at runtime
