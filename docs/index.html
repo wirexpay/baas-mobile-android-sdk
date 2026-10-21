@@ -131,8 +131,8 @@
   <div class="wrap">
     <div class="eyebrow">Wirex Mobile SDK</div>
     <h1>Wirex Mobile SDK for Android — Integration Guide</h1>
-    <p class="lede">One Maven artifact, four sealed surfaces: card <strong>Reveal</strong>, card <strong>Collect</strong>, <strong>3-D Secure</strong> and <strong>Wallet</strong> top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against <code>com.wirexapp.baas:mobile-sdk</code> 0.3.7.</p>
-    <div class="badges"><span class="badge">Native Android · Kotlin</span><span class="badge">com.wirexapp.baas:mobile-sdk 0.3.7 · Maven Central</span><span class="badge ok">Reveal · Collect · 3-D Secure · Wallet</span></div>
+    <p class="lede">One Maven artifact, four sealed surfaces: card <strong>Reveal</strong>, card <strong>Collect</strong>, <strong>3-D Secure</strong> and <strong>Wallet</strong> top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against <code>com.wirexapp.baas:mobile-sdk</code> 0.3.12.</p>
+    <div class="badges"><span class="badge">Native Android · Kotlin</span><span class="badge">com.wirexapp.baas:mobile-sdk 0.3.12 · Maven Central</span><span class="badge ok">Reveal · Collect · 3-D Secure · Wallet</span></div>
   </div>
 </header>
 <main class="wrap">
@@ -208,7 +208,7 @@
 <ul><li><strong>Android 6.0 (API 23) or later.</strong> Java 17 bytecode; Kotlin 2.0 or later for a Kotlin host.</li><li><code>mavenCentral()</code> for the SDK and <code>google()</code> for its AndroidX dependency. Any Android project already has both.</li><li>The SDK declares no permissions. <code>INTERNET</code> is your app's to request.</li></ul>
 <pre><code><span class="tok-c">// build.gradle.kts (app)</span>
 dependencies {
-    implementation("com.wirexapp.baas:mobile-sdk:0.3.7")
+    implementation("com.wirexapp.baas:mobile-sdk:0.3.12")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2") <span class="tok-c">// to call the suspend APIs</span>
 }</code></pre>
 <p>The SDK's own dependencies are the Kotlin standard library, <code>kotlinx-coroutines-android</code> and <code>androidx.webkit</code>. Consumer ProGuard/R8 rules are shipped in the artifact, and the AAR merges the <code>&lt;queries&gt;</code> block Google Pay needs on Android 11 and later into your manifest.</p>
