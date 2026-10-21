@@ -1,8 +1,8 @@
 # Wirex Mobile SDK for Android — Integration Guide
 
-One Maven artifact, four sealed surfaces: card **Reveal**, card **Collect**, **3-D Secure** and **Wallet** top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against `com.wirexapp.baas:mobile-sdk` 0.3.12.
+One Maven artifact, four sealed surfaces: card **Reveal**, card **Collect**, **3-D Secure** and **Wallet** top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against `com.wirexapp.baas:mobile-sdk` 0.3.13.
 
-<!-- badges: Native Android · Kotlin | com.wirexapp.baas:mobile-sdk 0.3.12 · Maven Central | Reveal · Collect · 3-D Secure · Wallet -->
+<!-- badges: Native Android · Kotlin | com.wirexapp.baas:mobile-sdk 0.3.13 · Maven Central | Reveal · Collect · 3-D Secure · Wallet -->
 
 ## 1. What the SDK does
 
@@ -31,7 +31,7 @@ Your app supplies two things:
 ```kotlin
 // build.gradle.kts (app)
 dependencies {
-    implementation("com.wirexapp.baas:mobile-sdk:0.3.12")
+    implementation("com.wirexapp.baas:mobile-sdk:0.3.13")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2") // to call the suspend APIs
 }
 ```
@@ -372,7 +372,7 @@ object Styling {
     )
     val revealStrings = WirexRevealStrings(
         fieldLabels = mapOf(WirexRevealField.PAN to "Card number", WirexRevealField.CVV to "CVV"),
-        copy = "Copy", copied = "Copied",
+        maskedSegmentGlyph = "*", copy = "Copy", copied = "Copied",
     )
     val collectStrings = WirexCollectStrings(
         fieldLabels = mapOf(WirexCollectField.NUMBER to "Card number"),
@@ -396,7 +396,7 @@ object Styling {
 ```
 
 - `WirexAppearance` is a data class with every parameter defaulted: `mode` (`LIGHT` / `DARK`), ARGB colour overrides (`colorTextOverride`, `colorLabelOverride`, `colorPlaceholderOverride`, `colorErrorOverride`, `colorFocusOverride`, `colorBackgroundOverride`, `colorBorderOverride`, `surfaceColorOverride`), typography (`typeface`, `fontSizeBaseDp`, `fontSizeLabelDp`, `lineHeightBaseDp`, `lineHeightLabelDp`, `fontWeightBaseBold`, `fontWeightLabelBold`), geometry in dp (`borderRadiusDp`, `borderWidthDp`, `spacingUnitDp`, `paddingHorizontalDp`, `paddingVerticalDp`, `spacingLabelDp`, `spacingErrorDp`, `iconSizeDp`, `controlMinHeightDp`). The same object styles Reveal, Collect and 3-D Secure. `WirexAppearanceTokens.appearance(tokens, mode)` builds one from a token map with the web SDK's names.
-- Strings: `WirexRevealStrings`, `WirexCollectStrings` (labels, placeholders, an `error` lambda per field and a `brandName` lambda; `fromJson` accepts the web SDK's JSON shape) and `WirexThreeDSStrings(title, close, loading)`. Icons are optional `Drawable`s: `WirexRevealIcons(copy, copied)`, `WirexCollectIcons(visa, mastercard)`, `WirexThreeDSIcons(close)`.
+- Strings: `WirexRevealStrings` (field labels, `maskedPlaceholder` for plain fields, `maskedSegmentGlyph` drawn in every PIN cell while masked, default `"*"`, copy texts), `WirexCollectStrings` (labels, placeholders, an `error` lambda per field and a `brandName` lambda; `fromJson` accepts the web SDK's JSON shape) and `WirexThreeDSStrings(title, close, loading)`. Icons are optional `Drawable`s: `WirexRevealIcons(copy, copied)`, `WirexCollectIcons(visa, mastercard)`, `WirexThreeDSIcons(close)`.
 - Wallet: `WirexWalletAppearance(theme, variables)` passes CSS variables to the frame; `WirexWalletBranding(logo, processingDisclosurePartnerName, privacyUrl)`; `WirexWalletButtons` sets the Google Pay button `color` (`BLACK`, `WHITE`) and `type` (`PLAIN`, `PAY`, `BUY`); `strings` is a `Map<SpecWalletStringKey, String>` overriding the 11 labels of the checkout.
 - **Sizing.** `WirexRevealFieldView.naturalHeightPx(widthPx)` and `WirexCollectForm.naturalHeightPx(widthPx)` measure the content; the wallet emits a `NaturalHeight` event. Use `WRAP_CONTENT` or apply those heights instead of hardcoding them.
 - **Screenshot protection.** `FLAG_SECURE` is acquired on the hosting window automatically while a sealed view is attached. Pass the window explicitly with `secureWindow(window)` when the view lives in a `Dialog` or `PopupWindow` the SDK cannot resolve.

@@ -28,7 +28,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.wirexapp.baas:mobile-sdk:0.3.12")
+    implementation("com.wirexapp.baas:mobile-sdk:0.3.13")
 }
 ```
 
