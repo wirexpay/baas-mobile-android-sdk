@@ -1,7 +1,9 @@
 package com.wirexapp.baas.example
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Base64
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -38,8 +40,11 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Credentials and identity are entered in the app (the "credentials" box), never passed as
-        // intent extras — a bearer in an extra is visible in `logcat` and `dumpsys`.
+        // A `wirexqa://seed?d=<base64url(JSON)>` deep link prefills the Config, so a partner or QA can
+        // arm a device without typing. Applied before the screens configure, so the first configure
+        // sees it. The example keeps every value in memory only; nothing is persisted.
+        applySeedLink(intent)
+
         reveal = RevealScreen(this, credentials)
         threeDS = ThreeDSScreen(this, intent?.getStringExtra("threeDsUrl").orEmpty())
         setContentView(buildLayout())
@@ -60,7 +65,36 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.action == Intent.ACTION_VIEW) {
-            intent.dataString?.let { walletLaunch.onReturn(it) }
+            val data = intent.dataString
+            if (data != null && data.startsWith("wirexqa://seed")) {
+                applySeedLink(intent)
+            } else {
+                data?.let { walletLaunch.onReturn(it) }
+            }
+        }
+    }
+
+    /**
+     * Reads a `wirexqa://seed?d=<base64url(JSON)>` deep link into [LiveConfig] — any parameter, the
+     * bearer and action token included. A real integration mints those from its own auth; this only
+     * saves typing on a test device. The native / RN / Flutter examples name identity `userWallet` /
+     * `userEmail`; those map to this example's `wallet` / `email` so one seed link works everywhere.
+     */
+    private fun applySeedLink(intent: Intent?) {
+        val uri: Uri = intent?.data ?: return
+        if (uri.scheme != "wirexqa" || uri.host != "seed") return
+        val d = uri.getQueryParameter("d")?.takeIf { it.isNotEmpty() } ?: return
+        try {
+            val json = org.json.JSONObject(
+                String(Base64.decode(d, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)),
+            )
+            val aliases = mapOf("userWallet" to "wallet", "userEmail" to "email")
+            for (rawKey in json.keys()) {
+                val value = json.optString(rawKey)
+                if (value.isNotEmpty()) LiveConfig.setCredential(aliases[rawKey] ?: rawKey, value)
+            }
+        } catch (_: Exception) {
+            // ignore a malformed seed link
         }
     }
 

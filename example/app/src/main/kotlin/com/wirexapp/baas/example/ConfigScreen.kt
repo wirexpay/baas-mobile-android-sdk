@@ -78,7 +78,21 @@ class ConfigScreen(private val activity: AppCompatActivity) {
             },
         )
 
+        // A seed deep link (or any other code path) can change a value while this tab is built. Pull
+        // the new values into the fields and the status line, skipping the field being edited.
+        LiveConfig.onCredentialsChanged { activity.runOnUiThread { syncFields() } }
+
         return Ui.scroller(activity, root) { activity.currentFocus }.apply { setBackgroundColor(BG) }
+    }
+
+    private fun syncFields() {
+        for ((key, input) in fields) {
+            if (input.hasFocus()) continue
+            val value = LiveConfig.credential(key)
+            if (input.text.toString() != value) input.setText(value)
+        }
+        syncEnvironmentChips()
+        refreshStatus()
     }
 
     // ── Rows ──────────────────────────────────────────────────────────────────────
