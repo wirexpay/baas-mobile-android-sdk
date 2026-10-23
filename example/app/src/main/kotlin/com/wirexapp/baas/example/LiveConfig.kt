@@ -2,6 +2,8 @@ package com.wirexapp.baas.example
 
 import com.wirexapp.baas.cards.core.appearance.WirexAppearance
 import com.wirexapp.baas.cards.core.appearance.WirexAppearanceTokens
+import android.net.Uri
+import android.util.Base64
 import org.json.JSONObject
 import com.wirexapp.baas.cards.core.appearance.WirexThemeMode
 
@@ -67,6 +69,35 @@ object LiveConfig {
     /** `test` everywhere but the production name — mirrors `exampleConfig.ts`. */
     val isTestMode: Boolean
         get() = environment != "production"
+
+    /**
+     * Applies a `wirexqa://seed?d=<base64url(JSON)>` link — the deep link the example registers — from
+     * the launch intent or from text pasted into the Config tab. Returns how many values were set, or
+     * null when the text is not a seed link (other scheme or host, no `d`, undecodable). Any key is
+     * applied, the bearer and action token included; the RN example names identity `userWallet` /
+     * `userEmail`, which map to this example's `wallet` / `email`.
+     */
+    fun applySeedLink(link: String): Int? {
+        val uri = runCatching { Uri.parse(link.trim()) }.getOrNull() ?: return null
+        if (uri.scheme != "wirexqa" || uri.host != "seed") return null
+        val d = uri.getQueryParameter("d")?.takeIf { it.isNotEmpty() } ?: return null
+        return try {
+            val json = JSONObject(String(Base64.decode(d, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)))
+            var applied = 0
+            for (rawKey in json.keys()) {
+                val value = json.optString(rawKey)
+                if (value.isEmpty()) continue
+                setCredential(SEED_ALIASES[rawKey] ?: rawKey, value, notify = false)
+                applied++
+            }
+            notifyCredentialsChanged()
+            applied
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private val SEED_ALIASES = mapOf("userWallet" to "wallet", "userEmail" to "email")
 
     /** Clears every credential / identity value back to empty (environment falls back to `test`). */
     fun resetCredentials() {
