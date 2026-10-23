@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.14
+- Reveal: honour `dangerouslyDisableScreenProtection` for a row that is attached before its session is bound. A declarative host (a Flutter platform view, or a placeholder row shown before the session loads) attaches the view with no session, so it secured the window by default; binding a session that disabled protection now drops that flag instead of leaving the window `FLAG_SECURE`.
+- Reveal: a card field redacts its own `toString()` / debug output, so a value cannot leak through a logging interceptor or a debugger's variable pane. Matches the iOS `RevealPresentation`.
+
 ## 0.3.13
 
 Reveal

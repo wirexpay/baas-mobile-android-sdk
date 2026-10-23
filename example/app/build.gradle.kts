@@ -4,7 +4,7 @@ plugins {
 }
 
 // The published SDK version this example resolves.
-val sdkVersion = "0.3.13"
+val sdkVersion = "0.3.14"
 
 android {
     namespace = "com.wirexapp.baas.example"
