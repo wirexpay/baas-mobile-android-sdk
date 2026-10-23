@@ -28,6 +28,15 @@
                     android:host="wirex-sdk-example.wirexapp.tech"
                     android:pathPrefix="/wallet-return" />
             </intent-filter>
+            <!-- Prefill the Config from a `wirexqa://seed?d=<base64url(JSON)>` deep link, so a partner
+                 or QA can arm a device without typing (see MainActivity.applySeedLink). The example
+                 keeps every value in memory only; nothing is persisted. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="wirexqa" android:host="seed" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>
