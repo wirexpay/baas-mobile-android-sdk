@@ -39,7 +39,20 @@ object LiveConfig {
 
     private val lock = Any()
 
-    private val KNOWN = listOf("environment", "bearer", "email", "wallet", "cardId", "chainId", "actionToken", "cardholderName", "baasApiUrl")
+    private val KNOWN = listOf(
+        "environment", "bearer", "email", "wallet", "cardId", "chainId", "actionToken", "cardholderName", "baasApiUrl",
+        // Screen-capture protection (`FLAG_SECURE`). Only `"true"` disables it; unset / anything else keeps
+        // it ON — the secure default. Set it from the Config tab or a seed link to let QA capture the
+        // reveal / collect surfaces for a test.
+        "disableScreenProtection",
+    )
+
+    /**
+     * Whether to pass `dangerouslyDisableScreenProtection = true` to the SDK. Default false (protection
+     * ON); `disableScreenProtection=true` lets QA screenshot the surfaces. Never ship it on.
+     */
+    val isScreenProtectionDisabled: Boolean
+        get() = credential("disableScreenProtection") == "true"
 
     /** Called once from the activity with whatever came in on the launch intent. */
     fun seed(values: Map<String, String>) = synchronized(lock) {
