@@ -181,7 +181,8 @@ class CollectScreen(
 
     /** The environment + chain id the form was built for; only those are read when it is built. */
     private var lastConfigKey = ""
-    private fun currentConfigKey(): String = LiveConfig.environment + "|" + LiveConfig.credential("chainId")
+    private fun currentConfigKey(): String =
+        LiveConfig.environment + "|" + LiveConfig.credential("chainId") + "|" + LiveConfig.isScreenProtectionDisabled
 
     private fun rebuildForm() {
         lastConfigKey = currentConfigKey()
@@ -199,6 +200,8 @@ class CollectScreen(
             environment = environment,
             credentials = credentials,
             logging = WirexLogging(WirexLogLevel.INFO, ConsoleLogSink),
+            // DEV/TEST ONLY, from the Config tab's "Screen capture" switch — see RevealScreen.
+            dangerouslyDisableScreenProtection = LiveConfig.isScreenProtectionDisabled,
         )
         this.collect = collect
 

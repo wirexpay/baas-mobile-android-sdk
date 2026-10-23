@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
+import androidx.appcompat.widget.SwitchCompat
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
@@ -64,6 +65,9 @@ class ConfigScreen(private val activity: AppCompatActivity) {
         root.addView(section("Secrets · memory only"))
         root.addView(group(secrets))
 
+        root.addView(section("Screen capture"))
+        root.addView(screenCaptureCard())
+
         root.addView(section("Credentials status"))
         status = TextView(activity).apply {
             typeface = Typeface.MONOSPACE
@@ -95,6 +99,7 @@ class ConfigScreen(private val activity: AppCompatActivity) {
             if (input.text.toString() != value) input.setText(value)
         }
         syncEnvironmentChips()
+        captureSwitch.isChecked = !LiveConfig.isScreenProtectionDisabled
         refreshStatus()
     }
 
@@ -162,6 +167,36 @@ class ConfigScreen(private val activity: AppCompatActivity) {
             chip.background = rounded(if (on) ACCENT else SURFACE, if (on) ACCENT else BORDER, 999)
             chip.setTextColor(if (on) ON_ACCENT else TEXT_DIM)
         }
+    }
+
+    private lateinit var captureSwitch: SwitchCompat
+
+    /**
+     * DEV/TEST ONLY. Off = `dangerouslyDisableScreenProtection = true` on Reveal and Collect, so QA can
+     * screenshot the surfaces (they are black under FLAG_SECURE otherwise). A seed link can set the
+     * same key (`disableScreenProtection`). Never ship a build with it off to cardholders.
+     */
+    private fun screenCaptureCard(): View {
+        val row = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val texts = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(label("Screen-capture protection (FLAG_SECURE)"))
+            addView(
+                hint(
+                    "On — card data is HIDDEN from screenshots / screen-recording on Reveal & Collect (the secure default).\n" +
+                        "Off — data is VISIBLE so QA can capture it for a test.",
+                ),
+            )
+        }
+        row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        captureSwitch = SwitchCompat(activity).apply {
+            isChecked = !LiveConfig.isScreenProtectionDisabled
+            setOnCheckedChangeListener { _, protect ->
+                LiveConfig.setCredential("disableScreenProtection", if (protect) "" else "true")
+            }
+        }
+        row.addView(captureSwitch, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { leftMargin = dp(12) })
+        return card(listOf(row))
     }
 
     private fun group(specs: List<FieldSpec>): View {

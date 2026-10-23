@@ -187,10 +187,17 @@ class RevealScreen(
             status.text = "unavailable — ${unavailable.message ?: "set the Chain ID on the Config tab, then it loads"}"
             return
         }
-        val key = LiveConfig.environment + "|" + LiveConfig.credential("chainId")
+        val key = LiveConfig.environment + "|" + LiveConfig.credential("chainId") + "|" + LiveConfig.isScreenProtectionDisabled
         val reconfigured = reveal == null || key != lastConfigKey
         if (reconfigured) {
-            reveal = WirexReveal(environment = resolved, credentials = credentials, logging = WirexLogging.DEBUG)
+            reveal = WirexReveal(
+                environment = resolved,
+                credentials = credentials,
+                logging = WirexLogging.DEBUG,
+                // DEV/TEST ONLY, from the Config tab's "Screen capture" switch: off by default, so the
+                // rows draw under FLAG_SECURE and screenshots are black. Never ship it on to cardholders.
+                dangerouslyDisableScreenProtection = LiveConfig.isScreenProtectionDisabled,
+            )
             lastConfigKey = key
         }
         val identity = LiveConfig.credential("cardId") + "|" + LiveConfig.credential("cardholderName")
