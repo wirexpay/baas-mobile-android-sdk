@@ -52,6 +52,9 @@ class ConfigScreen(private val activity: AppCompatActivity) {
         root.addView(title("Configuration"))
         root.addView(caption("Type a partner's parameters here; every screen reads them live. Secrets stay in memory only."))
 
+        root.addView(section("Seed link"))
+        root.addView(seedLinkCard())
+
         root.addView(section("Environment"))
         root.addView(environmentRow())
 
@@ -96,6 +99,38 @@ class ConfigScreen(private val activity: AppCompatActivity) {
     }
 
     // ── Rows ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * The same `wirexqa://seed?d=…` link the app opens as a deep link, pasted instead — for a device
+     * where opening the link is awkward (a chat that strips the scheme, a locked-down browser).
+     */
+    private fun seedLinkCard(): View {
+        val input = EditText(activity).apply {
+            setTextColor(TEXT)
+            setHintTextColor(TEXT_FAINT)
+            textSize = 15f
+            background = rounded(SURFACE_ALT, BORDER, 10)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            isSingleLine = true
+            hint = "wirexqa://seed?d=…"
+            setOnFocusChangeListener { v, hasFocus -> if (hasFocus) Ui.revealFocusedField(v) }
+        }
+        val status = hint("Paste the link the QA kit prints (the same one the app opens as a deep link); Apply fills every field below.")
+        val apply = pill("Apply", ON_ACCENT, ACCENT, ACCENT) {
+            val applied = LiveConfig.applySeedLink(input.text.toString())
+            status.text = if (applied == null) "Not a wirexqa://seed link" else "Applied $applied value${if (applied == 1) "" else "s"}"
+            status.setTextColor(if (applied == null) PINK else TEAL)
+            if (applied != null) input.setText("")
+            input.clearFocus()
+            syncFields()
+        }
+        val applyRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(apply, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        return card(listOf(input, applyRow, status))
+    }
 
     private fun environmentRow(): View {
         val row = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
