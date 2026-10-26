@@ -26,16 +26,25 @@ import com.wirexapp.baas.cards.threeds.ui.WirexThreeDSView
  */
 class ThreeDSScreen(private val activity: Activity, private val launchUrl: String) {
 
-    /** Rebuilt whenever the Config tab's environment changes: `testMode` is read at construction. */
+    /**
+     * Rebuilt whenever the Config tab's environment or its Screen capture switch changes: both are
+     * read at construction.
+     */
     private var threeDS: WirexThreeDS? = null
-    private var threeDSTestMode: Boolean? = null
+    private var threeDSKey: Pair<Boolean, Boolean>? = null
 
     private fun currentThreeDS(): WirexThreeDS {
-        val testMode = LiveConfig.isTestMode
-        threeDS?.takeIf { threeDSTestMode == testMode }?.let { return it }
-        return WirexThreeDS(testMode = testMode, logging = WirexLogging(WirexLogLevel.INFO, ConsoleLogSink)).also {
+        val key = LiveConfig.isTestMode to LiveConfig.isScreenProtectionDisabled
+        threeDS?.takeIf { threeDSKey == key }?.let { return it }
+        return WirexThreeDS(
+            testMode = key.first,
+            logging = WirexLogging(WirexLogLevel.INFO, ConsoleLogSink),
+            // DEV/TEST ONLY — the Config tab's Screen capture switch, the same one Reveal and Collect
+            // read. Off = the challenge is visible to screenshots and recording (device clouds).
+            dangerouslyDisableScreenProtection = key.second,
+        ).also {
             threeDS = it
-            threeDSTestMode = testMode
+            threeDSKey = key
         }
     }
 

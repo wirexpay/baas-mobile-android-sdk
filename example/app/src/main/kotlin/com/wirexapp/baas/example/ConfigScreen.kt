@@ -172,7 +172,7 @@ class ConfigScreen(private val activity: AppCompatActivity) {
     private lateinit var captureSwitch: SwitchCompat
 
     /**
-     * DEV/TEST ONLY. Off = `dangerouslyDisableScreenProtection = true` on Reveal and Collect, so QA can
+     * DEV/TEST ONLY. Off = `dangerouslyDisableScreenProtection = true` on Reveal, Collect and 3DS, so QA can
      * screenshot the surfaces (they are black under FLAG_SECURE otherwise). A seed link can set the
      * same key (`disableScreenProtection`). Never ship a build with it off to cardholders.
      */
@@ -183,7 +183,7 @@ class ConfigScreen(private val activity: AppCompatActivity) {
             addView(label("Screen-capture protection (FLAG_SECURE)"))
             addView(
                 hint(
-                    "On — card data is HIDDEN from screenshots / screen-recording on Reveal & Collect (the secure default).\n" +
+                    "On — card data is HIDDEN from screenshots / screen-recording on Reveal, Collect & 3DS (the secure default).\n" +
                         "Off — data is VISIBLE so QA can capture it for a test.",
                 ),
             )
