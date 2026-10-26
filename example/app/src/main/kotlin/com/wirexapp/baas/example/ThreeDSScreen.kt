@@ -83,6 +83,9 @@ class ThreeDSScreen(private val activity: Activity, private val launchUrl: Strin
 
         restyle()
         LiveConfig.onAppearanceChanged { activity.runOnUiThread { restyle() } }
+        // A seed link (deep link or the Config tab's field) may carry `threeDsUrl`: prefill the field.
+        syncFromConfig()
+        LiveConfig.onCredentialsChanged { activity.runOnUiThread { syncFromConfig() } }
 
         val match = ViewGroup.LayoutParams.MATCH_PARENT
         return FrameLayout(activity).apply {
@@ -90,6 +93,11 @@ class ThreeDSScreen(private val activity: Activity, private val launchUrl: Strin
             addView(challengeView, FrameLayout.LayoutParams(match, match))
             if (launchUrl.isNotEmpty()) post { start() }
         }
+    }
+
+    private fun syncFromConfig() {
+        val seeded = LiveConfig.credential("threeDsUrl")
+        if (seeded.isNotEmpty() && url.text.toString() != seeded) url.setText(seeded)
     }
 
     fun release() {
