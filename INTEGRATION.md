@@ -1,8 +1,8 @@
 # Wirex Mobile SDK for Android — Integration Guide
 
-One Maven artifact, four sealed surfaces: card **Reveal**, card **Collect**, **3-D Secure** and **Wallet** top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against `com.wirexapp.baas:mobile-sdk` 0.3.14.
+One Maven artifact, four sealed surfaces: card **Reveal**, card **Collect**, **3-D Secure** and **Wallet** top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against `com.wirexapp.baas:mobile-sdk` 0.3.15.
 
-<!-- badges: Native Android · Kotlin | com.wirexapp.baas:mobile-sdk 0.3.14 · Maven Central | Reveal · Collect · 3-D Secure · Wallet -->
+<!-- badges: Native Android · Kotlin | com.wirexapp.baas:mobile-sdk 0.3.15 · Maven Central | Reveal · Collect · 3-D Secure · Wallet -->
 
 ## 1. What the SDK does
 
@@ -31,7 +31,7 @@ Your app supplies two things:
 ```kotlin
 // build.gradle.kts (app)
 dependencies {
-    implementation("com.wirexapp.baas:mobile-sdk:0.3.14")
+    implementation("com.wirexapp.baas:mobile-sdk:0.3.15")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2") // to call the suspend APIs
 }
 ```
@@ -142,7 +142,7 @@ class RevealScreen(private val activity: Activity, credentials: WirexCredentialP
 
 > **Gotcha · sizing** A row draws its value at its natural height. Use `WRAP_CONTENT` or `row.naturalHeightPx(widthPx)`; a box shorter than the content clips the value.
 
-> **Note · screenshots** The SDK sets `FLAG_SECURE` on the hosting window while a sealed view is attached and refuses to unmask without it. For automated UI tests only, pass `dangerouslyDisableScreenProtection = true` to `create(...)`. Never ship it on.
+> **Note · screenshots** The SDK sets `FLAG_SECURE` on the hosting window while a sealed view is attached and refuses to unmask without it. For automated UI tests only, pass `dangerouslyDisableScreenProtection = true` to `create(...)`; `WirexThreeDS(...)` takes the same switch for the 3-D Secure challenge. Never ship it on.
 
 ## 5. Collect {creds}
 
@@ -244,7 +244,7 @@ class ThreeDSScreen(private val activity: Activity) {
 |---|---|---|
 | `IDLE` · `LOADING` · `CHALLENGE` · `SETTLED` | `COMPLETED` · `PENDING` · `FAILED` · `UNKNOWN` | `ORIGIN_REFUSED` · `DECLINED` · `UNAVAILABLE` |
 
-- The view stays invisible until the challenge is shown, applies `FLAG_SECURE` while it is visible, and includes a close control that calls `session.cancel()` (settles with `UNKNOWN`).
+- The view stays invisible until the challenge is shown, applies `FLAG_SECURE` while it is visible (unless `WirexThreeDS` was created with `dangerouslyDisableScreenProtection = true`), and includes a close control that calls `session.cancel()` (settles with `UNKNOWN`).
 - `onChange` is invoked immediately with the current snapshot when set.
 
 > **Note** `PENDING` means the payment is not settled *yet*; it is not an error. Reconcile the real result from your backend's status feed, not from the 3-D Secure status alone.

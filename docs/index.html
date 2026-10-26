@@ -131,8 +131,8 @@
   <div class="wrap">
     <div class="eyebrow">Wirex Mobile SDK</div>
     <h1>Wirex Mobile SDK for Android — Integration Guide</h1>
-    <p class="lede">One Maven artifact, four sealed surfaces: card <strong>Reveal</strong>, card <strong>Collect</strong>, <strong>3-D Secure</strong> and <strong>Wallet</strong> top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against <code>com.wirexapp.baas:mobile-sdk</code> 0.3.14.</p>
-    <div class="badges"><span class="badge">Native Android · Kotlin</span><span class="badge">com.wirexapp.baas:mobile-sdk 0.3.14 · Maven Central</span><span class="badge ok">Reveal · Collect · 3-D Secure · Wallet</span></div>
+    <p class="lede">One Maven artifact, four sealed surfaces: card <strong>Reveal</strong>, card <strong>Collect</strong>, <strong>3-D Secure</strong> and <strong>Wallet</strong> top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against <code>com.wirexapp.baas:mobile-sdk</code> 0.3.15.</p>
+    <div class="badges"><span class="badge">Native Android · Kotlin</span><span class="badge">com.wirexapp.baas:mobile-sdk 0.3.15 · Maven Central</span><span class="badge ok">Reveal · Collect · 3-D Secure · Wallet</span></div>
   </div>
 </header>
 <main class="wrap">
@@ -208,7 +208,7 @@
 <ul><li><strong>Android 6.0 (API 23) or later.</strong> Java 17 bytecode; Kotlin 2.0 or later for a Kotlin host.</li><li><code>mavenCentral()</code> for the SDK and <code>google()</code> for its AndroidX dependency. Any Android project already has both.</li><li>The SDK declares no permissions. <code>INTERNET</code> is your app's to request.</li></ul>
 <pre><code><span class="tok-c">// build.gradle.kts (app)</span>
 dependencies {
-    implementation("com.wirexapp.baas:mobile-sdk:0.3.14")
+    implementation("com.wirexapp.baas:mobile-sdk:0.3.15")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2") <span class="tok-c">// to call the suspend APIs</span>
 }</code></pre>
 <p>The SDK's own dependencies are the Kotlin standard library, <code>kotlinx-coroutines-android</code> and <code>androidx.webkit</code>. Consumer ProGuard/R8 rules are shipped in the artifact, and the AAR merges the <code>&lt;queries&gt;</code> block Google Pay needs on Android 11 and later into your manifest.</p>
@@ -294,7 +294,7 @@ class RevealScreen(private val activity: Activity, credentials: WirexCredentialP
 }</code></pre>
 <ul><li><code>fields</code> are <code>WirexRevealField</code> values: <code>CARDHOLDER_NAME</code>, <code>PAN</code>, <code>EXPIRY</code>, <code>CVV</code>, <code>PIN</code>. Omit <code>PIN</code> for a virtual card. <code>cardholderName</code> is supplied by you and never fetched.</li><li><code>PAN</code>, <code>CVV</code> and <code>PIN</code> start <strong>masked</strong>. <code>row.reveal()</code> unmasks, <code>row.mask()</code> masks again, <code>isMasked</code> reads the state. <code>reveal()</code> is refused (<code>onRevealRefused</code>) when screenshot protection is not active. Rows re-mask when detached (<code>masksWhenDetached</code>).</li><li>Session state is <code>WirexRevealState</code>: <code>Idle</code>, <code>Loading</code>, <code>Ready</code>, <code>Failed(error)</code>. Per-field results are <code>snapshot.outcome(field)</code>, <code>snapshot.loaded</code> and <code>snapshot.failed</code>, so one failed field does not hide the others.</li><li><code>load()</code> is a <code>suspend</code> function and idempotent. Request failures are reported in the snapshot; it throws only <code>WirexDeclined</code>. Values are wiped 120 seconds after the first load; <code>session.clear()</code> wipes them earlier.</li><li><code>row.onCopy</code> fires when the user copies a copyable field. <code>row.release()</code> drops the observer when the view goes away.</li></ul>
 <div class="note warn"><span class="lbl">Gotcha · sizing</span> A row draws its value at its natural height. Use <code>WRAP_CONTENT</code> or <code>row.naturalHeightPx(widthPx)</code>; a box shorter than the content clips the value.</div>
-<div class="note"><span class="lbl">Note · screenshots</span> The SDK sets <code>FLAG_SECURE</code> on the hosting window while a sealed view is attached and refuses to unmask without it. For automated UI tests only, pass <code>dangerouslyDisableScreenProtection = true</code> to <code>create(...)</code>. Never ship it on.</div>
+<div class="note"><span class="lbl">Note · screenshots</span> The SDK sets <code>FLAG_SECURE</code> on the hosting window while a sealed view is attached and refuses to unmask without it. For automated UI tests only, pass <code>dangerouslyDisableScreenProtection = true</code> to <code>create(...)</code>; <code>WirexThreeDS(...)</code> takes the same switch for the 3-D Secure challenge. Never ship it on.</div>
 </section>
 <section id="collect-creds">
 <h2><span class="num">04</span>Collect {creds}</h2>
@@ -380,7 +380,7 @@ class ThreeDSScreen(private val activity: Activity) {
     }
 }</code></pre>
 <table><thead><tr><th>State (<code>WirexThreeDSState</code>)</th><th>Outcome status (<code>WirexThreeDSStatus</code>)</th><th>Outcome error code</th></tr></thead><tbody><tr><td><code>IDLE</code> · <code>LOADING</code> · <code>CHALLENGE</code> · <code>SETTLED</code></td><td><code>COMPLETED</code> · <code>PENDING</code> · <code>FAILED</code> · <code>UNKNOWN</code></td><td><code>ORIGIN_REFUSED</code> · <code>DECLINED</code> · <code>UNAVAILABLE</code></td></tr></tbody></table>
-<ul><li>The view stays invisible until the challenge is shown, applies <code>FLAG_SECURE</code> while it is visible, and includes a close control that calls <code>session.cancel()</code> (settles with <code>UNKNOWN</code>).</li><li><code>onChange</code> is invoked immediately with the current snapshot when set.</li></ul>
+<ul><li>The view stays invisible until the challenge is shown, applies <code>FLAG_SECURE</code> while it is visible (unless <code>WirexThreeDS</code> was created with <code>dangerouslyDisableScreenProtection = true</code>), and includes a close control that calls <code>session.cancel()</code> (settles with <code>UNKNOWN</code>).</li><li><code>onChange</code> is invoked immediately with the current snapshot when set.</li></ul>
 <div class="note"><span class="lbl">Note</span> <code>PENDING</code> means the payment is not settled <em>yet</em>; it is not an error. Reconcile the real result from your backend's status feed, not from the 3-D Secure status alone.</div>
 </section>
 <section id="wallet-google-pay-creds-device">
