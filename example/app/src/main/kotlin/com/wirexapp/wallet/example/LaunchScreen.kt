@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.EditText
 import android.widget.TextView
 import androidx.browser.customtabs.CustomTabsIntent
+import com.wirexapp.baas.example.LiveConfig
 import com.wirexapp.wallet.topup.WirexWalletConfig
 import com.wirexapp.wallet.topup.WirexWalletLaunch
 import com.wirexapp.wallet.topup.model.WirexWalletLaunchParams
@@ -44,6 +45,13 @@ class LaunchScreen(private val activity: Activity, private val appConfig: AppCon
     var returnUrl: String = DEFAULT_RETURN_URL
         private set
 
+    private fun syncFromConfig() {
+        for ((field, key) in listOf(checkoutToken to "checkoutToken", estimationId to "estimationId", provider to "walletProvider")) {
+            val seeded = LiveConfig.credential(key)
+            if (seeded.isNotEmpty() && field.text.toString() != seeded) field.setText(seeded)
+        }
+    }
+
     fun build(): View {
         val column = Ui.column(context)
 
@@ -66,6 +74,10 @@ class LaunchScreen(private val activity: Activity, private val appConfig: AppCon
         destinationCurrency = Ui.field(context, "EUR")
         feeAmount = Ui.field(context, "5.50")
         returnUrlField = Ui.field(context, DEFAULT_RETURN_URL)
+        // A seed link (deep link or the Config tab's field) may carry the checkout token, estimation id
+        // and provider: prefill those fields, so a QA device needs no typing. They stay editable.
+        syncFromConfig()
+        LiveConfig.onCredentialsChanged { activity.runOnUiThread { syncFromConfig() } }
 
         column.addView(Ui.labelled(context, "checkoutToken", checkoutToken), Ui.matchWidth())
         column.addView(Ui.labelled(context, "estimationId", estimationId), Ui.matchWidth())

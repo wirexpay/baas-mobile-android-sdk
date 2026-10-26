@@ -47,6 +47,10 @@ object LiveConfig {
         // it ON — the secure default. Set it from the Config tab or a seed link to let QA capture the
         // reveal / collect surfaces for a test.
         "disableScreenProtection",
+        // Per-surface inputs a seed link may carry, so a QA device needs no typing at all: the 3DS tab's
+        // orchestrator URL and the Wallet tab's checkout token / estimation id / provider. Each tab
+        // prefills its own field from these; the field stays editable.
+        "threeDsUrl", "checkoutToken", "estimationId", "walletProvider",
     )
 
     /**
