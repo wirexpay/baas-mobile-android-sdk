@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.15
+- 3-D Secure: `dangerouslyDisableScreenProtection` on `WirexThreeDS`, the same switch Reveal and Collect have. Set, no `FLAG_SECURE` is applied while a challenge is on screen, so automated UI tests and device clouds can see the issuer's page. Off by default; never ship a build with it set.
+
 ## 0.3.14
 - Reveal: honour `dangerouslyDisableScreenProtection` for a row that is attached before its session is bound. A declarative host (a Flutter platform view, or a placeholder row shown before the session loads) attaches the view with no session, so it secured the window by default; binding a session that disabled protection now drops that flag instead of leaving the window `FLAG_SECURE`.
 - Reveal: a card field redacts its own `toString()` / debug output, so a value cannot leak through a logging interceptor or a debugger's variable pane. Matches the iOS `RevealPresentation`.
