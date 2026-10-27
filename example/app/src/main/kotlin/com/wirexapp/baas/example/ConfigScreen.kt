@@ -122,6 +122,8 @@ class ConfigScreen(private val activity: AppCompatActivity) {
             setPadding(dp(12), dp(10), dp(12), dp(10))
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             isSingleLine = true
+            // Android 14+ caps a single-line field at 5000 characters; a full seed link is longer.
+            filters = emptyArray()
             hint = "wirexqa://seed?d=…"
             setOnFocusChangeListener { v, hasFocus -> if (hasFocus) Ui.revealFocusedField(v) }
         }

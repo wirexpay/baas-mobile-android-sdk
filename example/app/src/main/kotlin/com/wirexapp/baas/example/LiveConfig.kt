@@ -135,7 +135,8 @@ object LiveConfig {
         val json = try {
             JSONObject(decoded)
         } catch (error: org.json.JSONException) {
-            return SeedOutcome.Rejected("JSON parse failed: ${error.message}")
+            // SECURITY: never the parser's message — it quotes the decoded payload, bearer included.
+            return SeedOutcome.Rejected(incompleteJson(uri.toString().length, decoded.length))
         }
         val applied = mutableListOf<String>()
         for (rawKey in json.keys()) {
@@ -151,6 +152,9 @@ object LiveConfig {
 
     /** The one scheme this example registers; the RN and Flutter examples each add their own. */
     private const val SEED_SCHEME = "wirexqa"
+
+    private fun incompleteJson(linkChars: Int, jsonChars: Int) =
+        "JSON parse failed: the link looks cut short ($linkChars chars, $jsonChars decoded) — copy the whole link again"
 
     private val SEED_ALIASES = mapOf("userWallet" to "wallet", "userEmail" to "email")
 
