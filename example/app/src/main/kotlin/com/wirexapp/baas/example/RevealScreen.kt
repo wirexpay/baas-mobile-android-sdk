@@ -17,6 +17,7 @@ import com.wirexapp.baas.cards.reveal.WirexRevealSnapshot
 import com.wirexapp.baas.cards.reveal.WirexRevealStrings
 import com.wirexapp.baas.cards.reveal.ui.WirexRevealFieldView
 import kotlinx.coroutines.launch
+import com.wirexapp.baas.cards.core.logging.WirexLogLevel
 import com.wirexapp.baas.cards.core.logging.WirexLogging
 
 /**
@@ -117,22 +118,25 @@ class RevealScreen(
         root.addView(
             Ui.buttonRow(
                 activity,
-                "Load" to { load() },
-                "Reveal" to { applyMask(false) },
-                "Mask" to { applyMask(true) },
+                "Load" to { DiagLog.tap("Reveal: Load"); load() },
+                "Reveal" to { DiagLog.tap("Reveal: Reveal"); applyMask(false) },
+                "Mask" to { DiagLog.tap("Reveal: Mask"); applyMask(true) },
             ),
         )
         root.addView(
             Ui.buttonRow(
                 activity,
                 "Clear" to {
+                    DiagLog.tap("Reveal: Clear")
                     session?.clear()
                     session?.let { renderStatus(it.snapshot) }
                 },
                 "New session" to {
+                    DiagLog.tap("Reveal: New session")
                     createSession()
                 },
                 "Decline next" to {
+                    DiagLog.tap("Reveal: Decline next")
                     credentials.declineNextActionToken = true
                     toast("The next action-token will be declined")
                 },
@@ -185,6 +189,7 @@ class RevealScreen(
             rows.clear()
             rowContainer.removeAllViews()
             status.text = "unavailable — ${unavailable.message ?: "set the Chain ID on the Config tab, then it loads"}"
+            DiagLog.err("Reveal unavailable: ${unavailable.message}")
             return
         }
         val key = LiveConfig.environment + "|" + LiveConfig.credential("chainId") + "|" + LiveConfig.isScreenProtectionDisabled
@@ -193,12 +198,13 @@ class RevealScreen(
             reveal = WirexReveal(
                 environment = resolved,
                 credentials = credentials,
-                logging = WirexLogging.DEBUG,
+                logging = WirexLogging(WirexLogLevel.DEBUG, ConsoleLogSink),
                 // DEV/TEST ONLY, from the Config tab's "Screen capture" switch: off by default, so the
                 // rows draw under FLAG_SECURE and screenshots are black. Never ship it on to cardholders.
                 dangerouslyDisableScreenProtection = LiveConfig.isScreenProtectionDisabled,
             )
             lastConfigKey = key
+            DiagLog.app("Reveal configured: env=${LiveConfig.environment} protection=${!LiveConfig.isScreenProtectionDisabled}")
         }
         val identity = LiveConfig.credential("cardId") + "|" + LiveConfig.credential("cardholderName")
         if (reconfigured || session == null || identity != sessionIdentity) {
@@ -224,12 +230,19 @@ class RevealScreen(
             )
         } catch (error: WirexError) {
             session = null
+            DiagLog.err("Reveal session refused: ${error.code.name} ${error.message}")
             status.text = "no session — ${error.code.name}. Paste a cardId in Credentials (JSON)."
             toast("cardId is required")
             return
         }
-        created.onChange = { snapshot -> activity.runOnUiThread { renderStatus(snapshot) } }
+        created.onChange = { snapshot ->
+            DiagLog.sdk(
+                "reveal state=${snapshot.state} loaded=${snapshot.loaded.map { it.wireName }} failed=${snapshot.failed.map { it.wireName }}",
+            )
+            activity.runOnUiThread { renderStatus(snapshot) }
+        }
         session = created
+        DiagLog.app("Reveal session created: fields=${fields.joinToString(",") { it.wireName }} cardId=${LiveConfig.credential("cardId").length} chars")
 
         val set = LiveConfig.appearance(activity)
         for (field in fields) {
@@ -237,9 +250,11 @@ class RevealScreen(
             row.bind(created, field, strings, set)
             row.onCopy = { copied ->
                 // Only ever a boolean. The value is not in this callback and cannot be.
+                DiagLog.sdk("reveal copy ${field.wireName}: ${if (copied) "copied" else "refused"}")
                 toast(if (copied) "Copied ${field.wireName}" else "Copy refused")
             }
             row.onRevealRefused = {
+                DiagLog.sdk("reveal refused ${field.wireName}: capture protection not active")
                 masked = true
                 toast("Reveal refused — capture protection is not active")
                 renderStatus(created.snapshot)
@@ -261,6 +276,7 @@ class RevealScreen(
 
     private fun applyMask(next: Boolean) {
         masked = next
+        DiagLog.app("Reveal rows ${if (next) "masked" else "revealed"}")
         rows.values.forEach { if (next) it.mask() else it.reveal() }
         session?.let { renderStatus(it.snapshot) }
     }

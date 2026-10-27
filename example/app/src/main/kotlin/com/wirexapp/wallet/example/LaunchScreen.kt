@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.EditText
 import android.widget.TextView
 import androidx.browser.customtabs.CustomTabsIntent
+import com.wirexapp.baas.example.DiagLog
 import com.wirexapp.baas.example.LiveConfig
 import com.wirexapp.wallet.topup.WirexWalletConfig
 import com.wirexapp.wallet.topup.WirexWalletLaunch
@@ -90,7 +91,7 @@ class LaunchScreen(private val activity: Activity, private val appConfig: AppCon
         column.addView(Ui.labelled(context, "returnUrl (https App Link)", returnUrlField), Ui.matchWidth())
 
         column.addView(
-            Ui.buttonRow(context, "Launch in Custom Tab" to ::launch),
+            Ui.buttonRow(context, "Launch in Custom Tab" to { DiagLog.tap("Wallet: Launch in Custom Tab"); launch() }),
             Ui.matchWidth(),
         )
 
@@ -155,6 +156,7 @@ class LaunchScreen(private val activity: Activity, private val appConfig: AppCon
     }
 
     private fun logLine(line: String) {
+        DiagLog.sdk("wallet $line")
         activity.runOnUiThread { log?.let { it.text = "${it.text}\n$line".trim() } }
     }
 

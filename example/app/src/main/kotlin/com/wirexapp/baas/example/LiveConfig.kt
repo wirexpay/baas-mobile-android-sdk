@@ -13,6 +13,14 @@ sealed interface ConfigOutcome {
     data class Rejected(val reason: String) : ConfigOutcome
 }
 
+/** Outcome of a seed link, with the reason when it was refused — the Config tab and the log show it. */
+sealed interface SeedOutcome {
+    data class Applied(val keys: List<String>) : SeedOutcome {
+        val count: Int get() = keys.size
+    }
+    data class Rejected(val reason: String) : SeedOutcome
+}
+
 /**
  * Everything the example needs at runtime that a rebuild would otherwise be required to change.
  *
@@ -73,9 +81,13 @@ object LiveConfig {
      * it loses focus, so a screen rebuilds once on blur rather than on every character.
      */
     fun setCredential(key: String, value: String, notify: Boolean = true) {
-        synchronized(lock) {
+        val changed = synchronized(lock) {
+            val before = credentials[key]
             if (value.isEmpty()) credentials.remove(key) else credentials[key] = value
+            before != value.ifEmpty { null }
         }
+        // On blur, not per keystroke; the key and the length, never the value.
+        if (notify && changed) DiagLog.config(if (value.isEmpty()) "cleared $key" else "set $key (${value.length} chars)")
         if (notify) notifyCredentialsChanged()
     }
 
@@ -89,30 +101,56 @@ object LiveConfig {
 
     /**
      * Applies a `wirexqa://seed?d=<base64url(JSON)>` link — the deep link the example registers — from
-     * the launch intent or from text pasted into the Config tab. Returns how many values were set, or
-     * null when the text is not a seed link (other scheme or host, no `d`, undecodable). Any key is
-     * applied, the bearer and action token included; the RN example names identity `userWallet` /
-     * `userEmail`, which map to this example's `wallet` / `email`.
+     * the launch intent or from text pasted into the Config tab. Returns the keys it set, or why it
+     * refused: another scheme or host, no `d`, undecodable. Any key is applied, the bearer and action
+     * token included; the RN example names identity `userWallet` / `userEmail`, which map to this
+     * example's `wallet` / `email`. `source` names where the link came from in the log.
      */
-    fun applySeedLink(link: String): Int? {
-        val uri = runCatching { Uri.parse(link.trim()) }.getOrNull() ?: return null
-        if (uri.scheme != "wirexqa" || uri.host != "seed") return null
-        val d = uri.getQueryParameter("d")?.takeIf { it.isNotEmpty() } ?: return null
-        return try {
-            val json = JSONObject(String(Base64.decode(d, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)))
-            var applied = 0
-            for (rawKey in json.keys()) {
-                val value = json.optString(rawKey)
-                if (value.isEmpty()) continue
-                setCredential(SEED_ALIASES[rawKey] ?: rawKey, value, notify = false)
-                applied++
-            }
-            notifyCredentialsChanged()
-            applied
-        } catch (_: Exception) {
-            null
-        }
+    fun applySeedLink(link: String, source: String = "paste"): SeedOutcome {
+        val text = link.trim()
+        val uri = runCatching { Uri.parse(text) }.getOrNull()
+        DiagLog.link("received ${DiagLog.hostOf(text)} (${text.length} chars) source=$source")
+        val outcome = seed(uri)
+        DiagLog.link(
+            when (outcome) {
+                is SeedOutcome.Applied -> "applied ${outcome.count} values: ${outcome.keys.joinToString(",")}"
+                is SeedOutcome.Rejected -> "rejected: ${outcome.reason}"
+            },
+        )
+        return outcome
     }
+
+    private fun seed(uri: Uri?): SeedOutcome {
+        if (uri == null || uri.scheme == null) return SeedOutcome.Rejected("not a URL")
+        if (uri.scheme != SEED_SCHEME) {
+            return SeedOutcome.Rejected("scheme '${uri.scheme}' is not accepted by this example (accepts: $SEED_SCHEME)")
+        }
+        if (uri.host != "seed") return SeedOutcome.Rejected("host is '${uri.host ?: ""}', expected seed")
+        val d = uri.getQueryParameter("d")?.takeIf { it.isNotEmpty() } ?: return SeedOutcome.Rejected("no d= parameter")
+        val decoded = try {
+            String(Base64.decode(d, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING))
+        } catch (_: IllegalArgumentException) {
+            return SeedOutcome.Rejected("base64 decode failed")
+        }
+        val json = try {
+            JSONObject(decoded)
+        } catch (error: org.json.JSONException) {
+            return SeedOutcome.Rejected("JSON parse failed: ${error.message}")
+        }
+        val applied = mutableListOf<String>()
+        for (rawKey in json.keys()) {
+            val value = json.optString(rawKey)
+            if (value.isEmpty()) continue
+            val key = SEED_ALIASES[rawKey] ?: rawKey
+            setCredential(key, value, notify = false)
+            applied += key
+        }
+        notifyCredentialsChanged()
+        return SeedOutcome.Applied(applied)
+    }
+
+    /** The one scheme this example registers; the RN and Flutter examples each add their own. */
+    private const val SEED_SCHEME = "wirexqa"
 
     private val SEED_ALIASES = mapOf("userWallet" to "wallet", "userEmail" to "email")
 

@@ -67,12 +67,12 @@ class ThreeDSScreen(private val activity: Activity, private val launchUrl: Strin
         }
         start = Button(activity).apply {
             text = "Start step-up"
-            setOnClickListener { start() }
+            setOnClickListener { DiagLog.tap("3DS: ${start.text}"); start() }
         }
         cancel = Button(activity).apply {
             text = "Cancel"
             isEnabled = false
-            setOnClickListener { session?.cancel() }
+            setOnClickListener { DiagLog.tap("3DS: Cancel"); session?.cancel() }
         }
         status.text = "no session"
 
@@ -120,7 +120,9 @@ class ThreeDSScreen(private val activity: Activity, private val launchUrl: Strin
 
     private fun start() {
         session?.destroy()
-        val next = currentThreeDS().session(orchestratorUrl = url.text.toString())
+        val orchestrator = url.text.toString()
+        DiagLog.app("3DS start: url=${DiagLog.hostOf(orchestrator)} (${orchestrator.length} chars) testMode=${LiveConfig.isTestMode} protection=${!LiveConfig.isScreenProtectionDisabled}")
+        val next = currentThreeDS().session(orchestratorUrl = orchestrator)
         session = next
         next.onChange = ::render
         challengeView.bind(next)
@@ -129,6 +131,10 @@ class ThreeDSScreen(private val activity: Activity, private val launchUrl: Strin
 
     private fun render(snapshot: WirexThreeDSSnapshot) {
         val settled = snapshot.state == WirexThreeDSState.SETTLED
+        DiagLog.sdk(
+            "threeds state=${snapshot.state.wireName}" +
+                (snapshot.outcome?.let { " status=${it.status.wireStatus} code=${it.error?.code?.wireCode ?: "none"} retryable=${it.error?.retryable ?: "-"}" } ?: ""),
+        )
         // `cancel()` does nothing once the session has settled, so the button is disabled then.
         cancel.isEnabled = !settled
         start.text = if (settled) "Start another" else "Start step-up"

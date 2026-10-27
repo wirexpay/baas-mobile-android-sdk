@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import androidx.appcompat.widget.SwitchCompat
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -75,15 +76,18 @@ class ConfigScreen(private val activity: AppCompatActivity) {
             setTextColor(TEXT_DIM)
             text = LiveConfig.credentialsStatus()
         }
-        root.addView(card(listOf(status, pill("Refresh status", TEAL, SURFACE_ALT, BORDER) { refreshStatus() })))
+        root.addView(card(listOf(status, pill("Refresh status", TEAL, SURFACE_ALT, BORDER) { DiagLog.tap("Refresh status"); refreshStatus() })))
 
         root.addView(
-            pill("Reset all", PINK, PINK and 0x22FFFFFF.toInt(), PINK) { resetAll() }.apply {
+            pill("Reset all", PINK, PINK and 0x22FFFFFF.toInt(), PINK) { DiagLog.tap("Reset all"); resetAll() }.apply {
                 val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 lp.topMargin = dp(26)
                 layoutParams = lp
             },
         )
+
+        root.addView(section("Diagnostic log"))
+        root.addView(diagnosticLogCard())
 
         // A seed deep link (or any other code path) can change a value while this tab is built. Pull
         // the new values into the fields and the status line, skipping the field being edited.
@@ -123,10 +127,18 @@ class ConfigScreen(private val activity: AppCompatActivity) {
         }
         val status = hint("Paste the link the QA kit prints (the same one the app opens as a deep link); Apply fills every field below.")
         val apply = pill("Apply", ON_ACCENT, ACCENT, ACCENT) {
-            val applied = LiveConfig.applySeedLink(input.text.toString())
-            status.text = if (applied == null) "Not a wirexqa://seed link" else "Applied $applied value${if (applied == 1) "" else "s"}"
-            status.setTextColor(if (applied == null) PINK else TEAL)
-            if (applied != null) input.setText("")
+            DiagLog.tap("Apply seed link")
+            when (val outcome = LiveConfig.applySeedLink(input.text.toString(), source = "paste")) {
+                is SeedOutcome.Applied -> {
+                    status.text = "Applied ${outcome.count} value${if (outcome.count == 1) "" else "s"}"
+                    status.setTextColor(TEAL)
+                    input.setText("")
+                }
+                is SeedOutcome.Rejected -> {
+                    status.text = "Not a wirexqa://seed link — ${outcome.reason}"
+                    status.setTextColor(PINK)
+                }
+            }
             input.clearFocus()
             syncFields()
         }
@@ -147,7 +159,9 @@ class ConfigScreen(private val activity: AppCompatActivity) {
                 gravity = Gravity.CENTER
                 setPadding(dp(20), dp(10), dp(20), dp(10))
                 setOnClickListener {
+                    DiagLog.tap("environment chip '$name'")
                     LiveConfig.setCredential("environment", name)
+                    DiagLog.config("environment switched to $name")
                     syncEnvironmentChips()
                 }
             }
@@ -192,6 +206,7 @@ class ConfigScreen(private val activity: AppCompatActivity) {
         captureSwitch = SwitchCompat(activity).apply {
             isChecked = !LiveConfig.isScreenProtectionDisabled
             setOnCheckedChangeListener { _, protect ->
+                DiagLog.config("screen-capture protection ${if (protect) "on" else "off"}")
                 LiveConfig.setCredential("disableScreenProtection", if (protect) "" else "true")
             }
         }
@@ -244,6 +259,61 @@ class ConfigScreen(private val activity: AppCompatActivity) {
             views += column
         }
         return card(views)
+    }
+
+    /**
+     * Everything the example and the SDK reported this run, live, with a share sheet — so a bug
+     * report carries what happened rather than a description of it. See [DiagLog] for what is
+     * deliberately NOT in it.
+     */
+    private fun diagnosticLogCard(): View {
+        val lines = TextView(activity).apply {
+            typeface = Typeface.MONOSPACE
+            textSize = 10f
+            setTextColor(TEXT_DIM)
+        }
+        val scroll = ScrollView(activity).apply {
+            background = rounded(SURFACE_ALT, BORDER, 10)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            addView(lines, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            // A scroller inside the tab's scroller: keep a drag that starts here, so the log can be
+            // read back without the whole tab moving.
+            setOnTouchListener { view, _ -> view.parent.requestDisallowInterceptTouchEvent(true); false }
+        }
+        val count = hint("")
+        // Follows the newest line once the text has been laid out. Not `fullScroll`: that moves
+        // focus, and the tab's scroller would follow it on launch.
+        lines.addOnLayoutChangeListener { _, _, _, _, bottom, _, _, _, oldBottom ->
+            if (bottom != oldBottom) scroll.scrollTo(0, bottom)
+        }
+        fun render() {
+            lines.text = DiagLog.text().ifEmpty { "(empty)" }
+            count.text = "${DiagLog.count()} lines"
+        }
+        DiagLog.onChange { activity.runOnUiThread { render() } }
+        render()
+
+        val buttons = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { rightMargin = dp(10) }
+            addView(pill("Share log", ON_ACCENT, ACCENT, ACCENT) { DiagLog.tap("Share log"); DiagLog.share(activity) }, lp)
+            addView(pill("Copy", TEAL, SURFACE_ALT, BORDER) { DiagLog.tap("Copy log"); DiagLog.copy(activity) }, lp)
+            addView(pill("Clear", PINK, SURFACE_ALT, BORDER) { DiagLog.clear(); DiagLog.app("log cleared") }, lp)
+        }
+        val card = card(
+            listOf(
+                hint(
+                    "Everything the example and the SDK reported this run: taps, deep links, config changes, " +
+                        "keyboard, SDK events. No secrets, no card data. Share it with a bug report.",
+                ),
+                scroll,
+                buttons,
+                count,
+            ),
+        )
+        // The card's own layout params would override the fixed height set above; re-apply it.
+        scroll.layoutParams = (scroll.layoutParams as LinearLayout.LayoutParams).apply { height = dp(220) }
+        return card
     }
 
     // ── Actions ─────────────────────────────────────────────────────────────────
