@@ -9,6 +9,7 @@ import com.wirexapp.wallet.topup.WirexWalletConfig
 import com.wirexapp.wallet.topup.WirexWalletLogLevel
 import com.wirexapp.wallet.topup.WirexWalletLogging
 import com.wirexapp.wallet.topup.model.WirexWalletAvailability
+import com.wirexapp.baas.example.DiagLog
 import com.wirexapp.wallet.topup.model.WirexWalletProviderConfig
 
 /**
@@ -58,8 +59,8 @@ class AvailabilityScreen(private val context: Context, private val appConfig: Ap
         column.addView(
             Ui.buttonRow(
                 context,
-                "Sample (shape only)" to { providerField.setText(Samples.PROVIDER_CONFIG_SHAPE) },
-                "Unmeetable floors" to { providerField.setText(Samples.PROVIDER_CONFIG_UNMEETABLE_FLOORS) },
+                "Sample (shape only)" to { DiagLog.tap("Wallet: Sample (shape only)"); providerField.setText(Samples.PROVIDER_CONFIG_SHAPE) },
+                "Unmeetable floors" to { DiagLog.tap("Wallet: Unmeetable floors"); providerField.setText(Samples.PROVIDER_CONFIG_UNMEETABLE_FLOORS) },
             ),
             Ui.matchWidth(),
         )
@@ -67,9 +68,9 @@ class AvailabilityScreen(private val context: Context, private val appConfig: Ap
         column.addView(
             Ui.buttonRow(
                 context,
-                "Run probe" to ::runProbe,
-                "Clear cache" to ::clearCache,
-                "Clear log" to { log.clear() },
+                "Run probe" to { DiagLog.tap("Wallet: Run probe"); runProbe() },
+                "Clear cache" to { DiagLog.tap("Wallet: Clear cache"); clearCache() },
+                "Clear log" to { DiagLog.tap("Wallet: Clear log"); log.clear() },
             ),
             Ui.matchWidth(),
         )

@@ -14,6 +14,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.wirexapp.baas.example.DiagLog
 import com.wirexapp.wallet.topup.WirexWalletLogLevel
 import com.wirexapp.wallet.topup.WirexWalletLogSink
 import java.text.SimpleDateFormat
@@ -164,6 +165,8 @@ class EventLog(context: Context) {
     private val clock = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
     fun append(line: String) {
+        // Also to the Config tab's shared log, so one "Share log" carries the Wallet run too.
+        DiagLog.sdk("wallet $line")
         lines.addLast("${clock.format(Date())}  $line")
         while (lines.size > MAX_LINES) lines.removeFirst()
         view.text = lines.joinToString("\n")

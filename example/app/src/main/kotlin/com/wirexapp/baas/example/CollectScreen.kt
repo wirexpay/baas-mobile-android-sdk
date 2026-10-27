@@ -97,8 +97,8 @@ class CollectScreen(
         root.addView(
             Ui.buttonRow(
                 activity,
-                "topup" to { setProfile(WirexCollectProfile.TOPUP) },
-                "oct-destination" to { setProfile(WirexCollectProfile.OCT_DESTINATION) },
+                "topup" to { DiagLog.tap("Collect: profile topup"); setProfile(WirexCollectProfile.TOPUP) },
+                "oct-destination" to { DiagLog.tap("Collect: profile oct-destination"); setProfile(WirexCollectProfile.OCT_DESTINATION) },
             ),
         )
         root.addView(profileLabel)
@@ -106,9 +106,9 @@ class CollectScreen(
         root.addView(
             Ui.buttonRow(
                 activity,
-                "err: animated" to { setErrorLine(WirexErrorLine.ANIMATED) },
-                "reserved" to { setErrorLine(WirexErrorLine.RESERVED) },
-                "hidden" to { setErrorLine(WirexErrorLine.HIDDEN) },
+                "err: animated" to { DiagLog.tap("Collect: err animated"); setErrorLine(WirexErrorLine.ANIMATED) },
+                "reserved" to { DiagLog.tap("Collect: err reserved"); setErrorLine(WirexErrorLine.RESERVED) },
+                "hidden" to { DiagLog.tap("Collect: err hidden"); setErrorLine(WirexErrorLine.HIDDEN) },
             ),
         )
         root.addView(
@@ -131,7 +131,7 @@ class CollectScreen(
         tokenizeButton = android.widget.Button(activity).apply {
             text = "Tokenize"
             textSize = 11f
-            setOnClickListener { tokenize() }
+            setOnClickListener { DiagLog.tap("Collect: Tokenize"); tokenize() }
         }
         root.addView(
             LinearLayout(activity).apply {
@@ -142,6 +142,7 @@ class CollectScreen(
                         text = "Clear"
                         textSize = 11f
                         setOnClickListener {
+                            DiagLog.tap("Collect: Clear")
                             form?.clear()
                             resultLabel.text = "—"
                         }
@@ -194,6 +195,7 @@ class CollectScreen(
             // Shown rather than swallowed: the two reasons are fixed in different places, and the
             // message already distinguishes them.
             resultLabel.text = unavailable.message
+            DiagLog.err("Collect unavailable: ${unavailable.message}")
             return
         }
         val collect = WirexCollect(
@@ -216,12 +218,21 @@ class CollectScreen(
             strings = strings,
         )
         built.errorLine = errorLine
-        built.onChange = { state -> render(state) }
+        built.onChange = { state ->
+            // Validity and touched-ness per field, never content: that is all the callback carries.
+            DiagLog.sdk(
+                "collect state complete=${state.isComplete} brand=${state.brand.wireValue} " +
+                    state.fields.joinToString(" ") { "${it.field.wireName}=${if (it.isValid) "ok" else if (it.isEmpty) "empty" else "invalid"}" },
+            )
+            render(state)
+        }
         // Moving between fields while the keyboard is already up fires no inset pass, so this is the
         // only thing that tells the screen to scroll the new field into view.
-        built.onFocusedFieldChanged = { _ ->
+        built.onFocusedFieldChanged = { field ->
+            DiagLog.app("Collect focus: ${field?.wireName ?: "none"}")
             activity.currentFocus?.let(Ui::revealFocusedField)
         }
+        DiagLog.app("Collect form built: profile=${profile.wireName} errorLine=${errorLine.name.lowercase()} env=${LiveConfig.environment} protection=${!LiveConfig.isScreenProtectionDisabled}")
         formHolder.addView(
             built,
             FrameLayout.LayoutParams(
@@ -298,6 +309,7 @@ class CollectScreen(
                 Ui.buttonRow(
                     activity,
                     "Apply strings" to {
+                        DiagLog.tap("Collect: Apply strings")
                         val parsed = WirexCollectStrings.fromJson(stringsField.text.toString())
                         if (parsed == null) {
                             toast("strings: not valid JSON")
@@ -308,6 +320,7 @@ class CollectScreen(
                         }
                     },
                     "Reset" to {
+                        DiagLog.tap("Collect: Reset strings")
                         stringsField.setText(DEFAULT_STRINGS_JSON)
                         strings = WirexCollectStrings.fromJson(DEFAULT_STRINGS_JSON)
                             ?: WirexCollectStrings()
@@ -347,6 +360,7 @@ class CollectScreen(
 
     private fun tokenize() {
         val active = form ?: return
+        DiagLog.app("Collect tokenize start: profile=${profile.wireName} complete=${active.state.isComplete}")
         resultLabel.text = "submitting…"
         tokenizeButton.isEnabled = false
 
@@ -366,6 +380,7 @@ class CollectScreen(
                                 ),
                             ),
                         )
+                        DiagLog.sdk("collect tokenized: cardId=${token.cardId.length} chars brand=${token.brand.wireValue} last4=${token.last4}")
                         resultLabel.text = buildString {
                             append("linked\ncardId: ").append(token.cardId)
                             append("\n").append(token.brand.wireValue)
@@ -382,6 +397,7 @@ class CollectScreen(
                                 isThirdParty = true,
                             ),
                         )
+                        DiagLog.sdk("collect registered: externalCardId=${token.externalCardId.length} chars brand=${token.brand.wireValue} last4=${token.last4}")
                         resultLabel.text = buildString {
                             append("registered\nexternalCardId: ").append(token.externalCardId)
                             append("\n").append(token.brand.wireValue)
@@ -399,8 +415,10 @@ class CollectScreen(
                 // (`TRANSPORT`). Printing two fields threw away the one that says which, and a
                 // screen that reports a failure without saying what kind sends whoever is
                 // integrating to a packet capture.
+                DiagLog.err("Collect tokenize failed: ${error.code.name} ${error.message}")
                 resultLabel.text = "failed: ${error.message}"
             } catch (error: Throwable) {
+                DiagLog.err(error)
                 resultLabel.text = "failed"
             }
             render(active.state)

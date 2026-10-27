@@ -213,7 +213,7 @@ class AppearanceScreen(private val activity: AppCompatActivity) {
         )
 
         for (preset in presets) {
-            root.addView(Ui.buttonRow(activity, preset.name to { applyPreset(preset) }))
+            root.addView(Ui.buttonRow(activity, preset.name to { DiagLog.tap("Appearance: preset '${preset.name}'"); applyPreset(preset) }))
             root.addView(Ui.caption(activity, preset.exercises))
         }
 
@@ -231,8 +231,8 @@ class AppearanceScreen(private val activity: AppCompatActivity) {
         root.addView(
             Ui.buttonRow(
                 activity,
-                "Apply" to { applyAppearance() },
-                "Reset" to { reset() },
+                "Apply" to { DiagLog.tap("Appearance: Apply"); applyAppearance() },
+                "Reset" to { DiagLog.tap("Appearance: Reset"); reset() },
             ),
         )
 
@@ -276,8 +276,8 @@ class AppearanceScreen(private val activity: AppCompatActivity) {
 
     private fun report(outcome: ConfigOutcome) {
         status.text = when (outcome) {
-            is ConfigOutcome.Merged -> outcome.summary
-            is ConfigOutcome.Rejected -> "rejected: ${outcome.reason}"
+            is ConfigOutcome.Merged -> outcome.summary.also { DiagLog.config("appearance $it") }
+            is ConfigOutcome.Rejected -> "rejected: ${outcome.reason}".also { DiagLog.err("appearance $it") }
         }
     }
 

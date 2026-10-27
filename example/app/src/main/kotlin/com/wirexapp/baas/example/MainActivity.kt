@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        DiagLog.start(this)
 
         // A `wirexqa://seed?d=<base64url(JSON)>` deep link prefills the Config, so a partner or QA can
         // arm a device without typing. Applied before the screens configure, so the first configure
@@ -46,6 +47,16 @@ class MainActivity : AppCompatActivity() {
         reveal = RevealScreen(this, credentials)
         threeDS = ThreeDSScreen(this, intent?.getStringExtra("threeDsUrl").orEmpty())
         setContentView(buildLayout())
+    }
+
+    override fun onStart() {
+        super.onStart()
+        DiagLog.app("foreground")
+    }
+
+    override fun onStop() {
+        DiagLog.app("background")
+        super.onStop()
     }
 
     override fun onDestroy() {
@@ -67,7 +78,10 @@ class MainActivity : AppCompatActivity() {
             if (data != null && data.startsWith("wirexqa://seed")) {
                 applySeedLink(intent)
             } else {
-                data?.let { walletLaunch.onReturn(it) }
+                data?.let {
+                    DiagLog.link("received ${DiagLog.hostOf(it)} (${it.length} chars) source=intent (wallet return)")
+                    walletLaunch.onReturn(it)
+                }
             }
         }
     }
@@ -79,7 +93,7 @@ class MainActivity : AppCompatActivity() {
      * `userEmail`; those map to this example's `wallet` / `email` so one seed link works everywhere.
      */
     private fun applySeedLink(intent: Intent?) {
-        intent?.data?.let { LiveConfig.applySeedLink(it.toString()) }
+        intent?.data?.let { LiveConfig.applySeedLink(it.toString(), source = "intent") }
     }
 
     private fun buildLayout(): View {
@@ -112,6 +126,7 @@ class MainActivity : AppCompatActivity() {
         // `-e screen config|collect|threeds|wallet|appearance` opens straight onto that tab, for scripted runs.
         select(listOf("config", "reveal", "collect", "threeds", "wallet", "appearance").indexOf(intent?.getStringExtra("screen")).coerceAtLeast(0))
 
+        var lastImeBottom = 0
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             // Edge to edge from Android 15: the system bars, the cutout and the keyboard pad the screen.
@@ -122,6 +137,12 @@ class MainActivity : AppCompatActivity() {
                         WindowInsetsCompat.Type.ime(),
                 )
                 view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+                // The keyboard's edges, for the log: insets fire on every layout pass, so only a change counts.
+                val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+                if (ime != lastImeBottom) {
+                    DiagLog.kbd(if (ime > 0) "shown (${ime}px)" else "hidden")
+                    lastImeBottom = ime
+                }
                 WindowInsetsCompat.CONSUMED
             }
             addView(
@@ -158,6 +179,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun select(index: Int) {
+        DiagLog.app("tab: ${tabs[index].first.text}")
         for ((position, tab) in tabs.withIndex()) {
             val active = position == index
             tab.second.visibility = if (active) View.VISIBLE else View.GONE
@@ -167,16 +189,17 @@ class MainActivity : AppCompatActivity() {
 }
 
 /**
- * Sends the SDK's diagnostics to logcat.
+ * Sends the SDK's diagnostics to logcat and to the Config tab's [DiagLog].
  *
  * Worth having in the example precisely because of what is NOT in it: everything reaching a sink has
  * already been through the redactor, and the collect surface's own log lines carry a profile name and
  * a brand — never a field value. `adb logcat -s WirexSdk` while typing a card is the cheapest way to
- * see that for yourself.
+ * see that for yourself; "Share log" on the Config tab is the way without adb.
  */
 object ConsoleLogSink : WirexLogSink {
     override fun write(level: WirexLogLevel, event: String, fields: Map<String, String>) {
         val rendered = fields.entries.sortedBy { it.key }.joinToString(" ") { "${it.key}=${it.value}" }
+        DiagLog.sdk("${level.name.lowercase()} $event $rendered".trimEnd())
         android.util.Log.println(
             when (level) {
                 WirexLogLevel.ERROR -> android.util.Log.ERROR
