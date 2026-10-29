@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.16
+- Version aligned with the React Native release. No Android change.
+
 ## 0.3.15
 - 3-D Secure: `dangerouslyDisableScreenProtection` on `WirexThreeDS`, the same switch Reveal and Collect have. Set, no `FLAG_SECURE` is applied while a challenge is on screen, so automated UI tests and device clouds can see the issuer's page. Off by default; never ship a build with it set.
 
