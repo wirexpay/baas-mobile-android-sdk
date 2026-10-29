@@ -1,8 +1,8 @@
 # Wirex Mobile SDK for Android — Integration Guide
 
-One Maven artifact, four sealed surfaces: card **Reveal**, card **Collect**, **3-D Secure** and **Wallet** top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against `com.wirexapp.baas:mobile-sdk` 0.3.15.
+One Maven artifact, four sealed surfaces: card **Reveal**, card **Collect**, **3-D Secure** and **Wallet** top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against `com.wirexapp.baas:mobile-sdk` 0.3.16.
 
-<!-- badges: Native Android · Kotlin | com.wirexapp.baas:mobile-sdk 0.3.15 · Maven Central | Reveal · Collect · 3-D Secure · Wallet -->
+<!-- badges: Native Android · Kotlin | com.wirexapp.baas:mobile-sdk 0.3.16 · Maven Central | Reveal · Collect · 3-D Secure · Wallet -->
 
 ## 1. What the SDK does
 
@@ -31,7 +31,7 @@ Your app supplies two things:
 ```kotlin
 // build.gradle.kts (app)
 dependencies {
-    implementation("com.wirexapp.baas:mobile-sdk:0.3.15")
+    implementation("com.wirexapp.baas:mobile-sdk:0.3.16")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2") // to call the suspend APIs
 }
 ```
