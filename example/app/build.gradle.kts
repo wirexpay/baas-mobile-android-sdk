@@ -28,8 +28,19 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // BuildConfig.DEBUG gates the launch extras: a release build never reads them.
+    buildFeatures { buildConfig = true }
+
     kotlinOptions { jvmTarget = "17" }
-    sourceSets { getByName("main") { java.srcDirs("src/main/kotlin") } }
+    sourceSets {
+        getByName("main") { java.srcDirs("src/main/kotlin") }
+        getByName("test") { java.srcDirs("src/test/kotlin") }
+    }
+}
+
+// The Android binding's loader runs first and cannot load on the JVM, so unit tests take the JVM one.
+configurations.matching { it.name.contains("UnitTest") }.configureEach {
+    exclude(group = "fr.acinq.secp256k1", module = "secp256k1-kmp-jni-android")
 }
 
 dependencies {
@@ -40,4 +51,11 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     // The wallet checkout opens top-level in a Chrome Custom Tab (CustomTabsIntent).
     implementation("androidx.browser:browser:1.8.0")
+    // TestSigner only: the example signs with a test user's key. The SDK itself holds no key.
+    implementation("fr.acinq.secp256k1:secp256k1-kmp-jni-android") { version { strictly("0.19.0") } }
+    implementation("org.kotlincrypto.hash:sha3") { version { strictly("0.7.0") } }
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("fr.acinq.secp256k1:secp256k1-kmp-jni-jvm") { version { strictly("0.19.0") } }
+    testImplementation("fr.acinq.secp256k1:secp256k1-kmp") { version { strictly("0.19.0") } }
 }

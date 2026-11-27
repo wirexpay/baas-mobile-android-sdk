@@ -6,3 +6,6 @@ build/
 *.iml
 .idea/
 .DS_Store
+
+# A tester's trade values for tools/trade-launch.sh. Holds a private key: never commit it.
+trade.local.env

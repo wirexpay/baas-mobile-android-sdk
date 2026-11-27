@@ -16,3 +16,13 @@ dependencyResolutionManagement {
 
 rootProject.name = "mobile-sdk-example"
 include(":app")
+
+// DEV ONLY: `-PwirexSdkSource=<baas-android-sdk checkout>` builds against the SDK's sources instead of the published
+// artifact. Without it the published coordinate is used.
+providers.gradleProperty("wirexSdkSource").orNull?.let { source ->
+    includeBuild(source) {
+        dependencySubstitution {
+            substitute(module("com.wirexapp.baas:mobile-sdk")).using(project(":mobile-sdk"))
+        }
+    }
+}

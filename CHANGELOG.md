@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+- Trade: `WirexTrade.create(environment, chainId, tokenProvider, signer)` buys and sells stocks and coins from the user's main account on Base or Arc, through the investment account on Base. Members: `account`, `setUpAccount`, `catalog`, `quote`, `execute`, `openOrders` and `resume`. The host's `WirexTradeSigner` signs; the SDK holds no key and keeps nothing on disk. A failure is a `WirexTradeError` with a reason name.
+- Example: a Trade tab with the panels Account, Catalog, Quote, Trade and Open orders. It signs with a test user's key held in memory only, and refuses a production trade worth more than 10 USD.
+- Example: the config takes launch extras in debug builds, which win over the Config tab, which wins over a seed link. A seed link that carries `ownerKey` is refused.
+
 ## 0.3.15
 - 3-D Secure: `dangerouslyDisableScreenProtection` on `WirexThreeDS`, the same switch Reveal and Collect have. Set, no `FLAG_SECURE` is applied while a challenge is on screen, so automated UI tests and device clouds can see the issuer's page. Off by default; never ship a build with it set.
 

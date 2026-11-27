@@ -29,11 +29,14 @@ class ConfigScreen(private val activity: AppCompatActivity) {
     private val fields = mutableListOf<Pair<String, EditText>>()
     private val environmentChips = mutableListOf<TextView>()
     private lateinit var status: TextView
+    // Set while the tab writes a field itself, so that write does not count as typed and outrank a seed link.
+    private var syncing = false
 
     private data class FieldSpec(val key: String, val label: String, val hint: String?, val secure: Boolean)
 
     private val integration = listOf(
         FieldSpec("chainId", "Chain ID", "X-Chain-Id — Wirex assigns per integration", false),
+        FieldSpec("companyId", "Company ID", "X-Company-Id of the Trade tab's wallet-signature login", false),
         FieldSpec("email", "User email", "X-User-Email", false),
         FieldSpec("wallet", "User wallet", "X-User-Wallet (EOA)", false),
         FieldSpec("cardId", "Card ID", "the card Reveal / Collect act on", false),
@@ -43,6 +46,7 @@ class ConfigScreen(private val activity: AppCompatActivity) {
     private val secrets = listOf(
         FieldSpec("bearer", "Bearer token", "getAccessToken — Wirex bearer for the user", true),
         FieldSpec("actionToken", "Step-up action token", "getActionToken — card data / PIN", true),
+        FieldSpec("ownerKey", "Owner key (test user only)", "the Trade tab signs with it and logs in with it when no bearer is set; a seed link never carries it", true),
     )
 
     fun build(): View {
@@ -100,7 +104,8 @@ class ConfigScreen(private val activity: AppCompatActivity) {
         for ((key, input) in fields) {
             if (input.hasFocus()) continue
             val value = LiveConfig.credential(key)
-            if (input.text.toString() != value) input.setText(value)
+            if (input.text.toString() != value) setQuietly(input, value)
+            lockIfLaunched(key, input)
         }
         syncEnvironmentChips()
         captureSwitch.isChecked = !LiveConfig.isScreenProtectionDisabled
@@ -161,6 +166,7 @@ class ConfigScreen(private val activity: AppCompatActivity) {
                 gravity = Gravity.CENTER
                 setPadding(dp(20), dp(10), dp(20), dp(10))
                 setOnClickListener {
+                    if (LiveConfig.isLaunchSet("environment")) return@setOnClickListener
                     DiagLog.tap("environment chip '$name'")
                     LiveConfig.setCredential("environment", name)
                     DiagLog.config("environment switched to $name")
@@ -239,6 +245,7 @@ class ConfigScreen(private val activity: AppCompatActivity) {
                 // Mid-edit: keep the store live without posting, so screens do not rebuild per keystroke.
                 addTextChangedListener(object : TextWatcher {
                     override fun afterTextChanged(s: Editable?) {
+                        if (syncing) return
                         LiveConfig.setCredential(spec.key, s?.toString().orEmpty(), notify = false)
                     }
                     override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
@@ -248,13 +255,16 @@ class ConfigScreen(private val activity: AppCompatActivity) {
                 setOnFocusChangeListener { v, hasFocus ->
                     if (hasFocus) {
                         Ui.revealFocusedField(v)
-                    } else {
-                        LiveConfig.setCredential(spec.key, (v as EditText).text.toString(), notify = true)
+                    } else if (!LiveConfig.isLaunchSet(spec.key)) {
+                        // An untouched field shows a seed value; leaving it must not turn that into a typed one.
+                        val text = (v as EditText).text.toString()
+                        if (text != LiveConfig.credential(spec.key)) LiveConfig.setCredential(spec.key, text) else LiveConfig.notifyCredentialsChanged()
                         refreshStatus()
                     }
                 }
             }
             fields += spec.key to input
+            lockIfLaunched(spec.key, input)
             val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             lp.topMargin = dp(4)
             column.addView(input, lp)
@@ -320,13 +330,26 @@ class ConfigScreen(private val activity: AppCompatActivity) {
 
     // ── Actions ─────────────────────────────────────────────────────────────────
 
+    private fun setQuietly(input: EditText, value: String) {
+        syncing = true
+        try { input.setText(value) } finally { syncing = false }
+    }
+
+    /** A launch extra wins over the Config tab, so its field cannot be edited until the app restarts. */
+    private fun lockIfLaunched(key: String, input: EditText) {
+        val launched = LiveConfig.isLaunchSet(key)
+        input.isEnabled = !launched
+        input.alpha = if (launched) 0.6f else 1f
+        if (launched) input.hint = "set at launch"
+    }
+
     private fun refreshStatus() {
         status.text = LiveConfig.credentialsStatus()
     }
 
     private fun resetAll() {
         LiveConfig.resetCredentials()
-        fields.forEach { (_, input) -> input.setText("") }
+        fields.forEach { (key, input) -> setQuietly(input, LiveConfig.credential(key)) }
         syncEnvironmentChips()
         refreshStatus()
     }
