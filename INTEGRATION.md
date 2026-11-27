@@ -375,7 +375,7 @@ suspend fun buyStock(owner: String, wallet: YourWallet, bearer: suspend () -> St
 }
 ```
 
-- **Create.** `WirexTrade.create(environment, chainId, tokenProvider, signer, logging, timeouts)`. `environment` is `production` or `test`, and the build holds the host; no member takes a URL. It throws `WirexEnvironmentUnavailable` when the build has no host for the environment, and `WirexTradeError` with `invalid_input` or `invalid_address` for a bad chain id or signer address.
+- **Create.** `WirexTrade.create(environment, chainId, tokenProvider, signer, logging, timeouts)`. `environment` is `production` or `test`, and the build holds the host; no member takes a URL. It throws `WirexEnvironmentUnavailable` when the build has no host for the environment. A bad chain id or signer address throws `WirexTradeError` with `invalid_input` or `invalid_address`.
 - **Bearer.** `WirexTradeTokenProvider.accessToken()` answers the user's bearer. It is read for every request, so a token you rotate needs no call to the SDK. A throw or an empty token fails the call with `token_unavailable`.
 - **Signer.** `WirexTradeSigner` has the owner's `address` and `signPersonal(hash)`, which answers 65 bytes `r ‖ s ‖ v`, signed per EIP-191 over the raw 32-byte hash. It may wait for the user's second factor. A throw fails the step with `signer_failed`, and nothing is sent.
 - **Members.** All are `suspend`:
@@ -386,8 +386,9 @@ suspend fun buyStock(owner: String, wallet: YourWallet, bearer: suspend () -> St
   - `execute(quote, onStep)` runs the quote until its order ends;
   - `openOrders()` and `resume(orderId, quote, onStep)` carry on an order after the app is killed.
 - **Owner check.** Before the first signature of `setUpAccount`, `execute` and `resume`, the SDK checks that the signer owns the main account. A key that does not fails with `signer_mismatch`, and nothing is signed.
-- **Steps.** `onStep` gets one `WirexTradeStepEvent` per change: `step`, `state` (`started`, `done`, `failed`), and, when they apply, `orderId`, `status`, `reason`, `userOpHash` and `transactionHash`. The steps are `setup`, `check`, `provision`, `store`, `submit`, `fundRequest`, `fundExecute`, `swap`, `awaitOrder`, `burn` and `sweep`.
-- **Resume.** `openOrders()` lists the orders that have not ended, each with the `nextStep` `resume` would run. When the store, or an Arc sale's swap, never went, `resume` needs the quote that made the order; without it, it fails with `quote_required` and nothing is signed. Keep the quote while its order is open.
+- **Steps.** `onStep` gets one `WirexTradeStepEvent` per change: `step`, `state` (`started`, `done`, `failed`), and, when they apply, `orderId`, `status`, `reason`, `userOpHash` and `transactionHash`. The steps are `setup`, `check`, `store`, `submit`, `fundRequest`, `fundExecute`, `swap`, `awaitOrder`, `burn` and `sweep`.
+- **Resume.** `openOrders()` lists the orders that have not ended, each with the `nextStep` `resume` would run. If the store, or an Arc sale's swap, never went, `resume` needs the quote that made the order. Without it, it fails with `quote_required` and nothing is signed. Keep the quote while its order is open.
+- **Arc refunds.** On an Arc company, a failed or expired buy's refund stays in the investment account. The sweep at the end of `execute` or `resume` brings it back. Until then it shows in `account().cash`.
 - **Errors.** Every member fails with `WirexTradeError`. It has `reason`, and when they apply `step`, `orderId`, `routeReason`, `detailKey`, `httpStatus` and `entryPointCode`. It never carries an amount, an address or a hash.
 - **Environments.** On `test` the catalog reads, a buy quote answers `investment_wallet_required`, and the set-up cannot run. A full trade runs only on `production`, with real money.
 - The SDK keeps nothing on disk and holds no key. Every member reads `api-business` and the chain afresh.
