@@ -36,7 +36,10 @@ sealed interface SeedOutcome {
  * The same keys every platform's example holds.
  */
 object LiveConfig {
-    private val credentials = mutableMapOf<String, String>()
+    // Three sources, highest first: launch extras (debug builds), the Config tab, a seed link.
+    private val launched = mutableMapOf<String, String>()
+    private val typed = mutableMapOf<String, String>()
+    private val seeded = mutableMapOf<String, String>()
     /**
      * ONE token map, because that is the contract.
      *
@@ -59,7 +62,12 @@ object LiveConfig {
         // orchestrator URL and the Wallet tab's checkout token / estimation id / provider. Each tab
         // prefills its own field from these; the field stays editable.
         "threeDsUrl", "checkoutToken", "estimationId", "walletProvider",
+        // The Trade tab: the company the login names, and the test user's key, memory only.
+        "companyId", "ownerKey",
     )
+
+    /** The keys a launch extra may set: every known key. */
+    val launchKeys: List<String> get() = KNOWN
 
     /**
      * Whether to pass `dangerouslyDisableScreenProtection = true` to the SDK. Default false (protection
@@ -68,12 +76,19 @@ object LiveConfig {
     val isScreenProtectionDisabled: Boolean
         get() = credential("disableScreenProtection") == "true"
 
-    /** Called once from the activity with whatever came in on the launch intent. */
-    fun seed(values: Map<String, String>) = synchronized(lock) {
-        credentials.putAll(values.filterValues { it.isNotEmpty() })
+    /** The launch extras of a debug build. They win over the Config tab and a seed link. */
+    fun applyLaunch(values: Map<String, String>) {
+        val applied = values.filter { it.key in KNOWN && it.value.isNotEmpty() }
+        if (applied.isEmpty()) return
+        synchronized(lock) { launched.putAll(applied) }
+        DiagLog.config("launch extras set: ${applied.keys.sorted().joinToString(",")}")
+        notifyCredentialsChanged()
     }
 
-    fun credential(key: String): String = synchronized(lock) { credentials[key] ?: "" }
+    /** Whether a launch extra holds [key], so the Config tab shows it read-only. */
+    fun isLaunchSet(key: String): Boolean = synchronized(lock) { key in launched }
+
+    fun credential(key: String): String = synchronized(lock) { launched[key] ?: typed[key] ?: seeded[key] ?: "" }
 
     /**
      * Writes a single key — the per-field Config tab's edit. An EMPTY value CLEARS the key, matching
@@ -82,8 +97,8 @@ object LiveConfig {
      */
     fun setCredential(key: String, value: String, notify: Boolean = true) {
         val changed = synchronized(lock) {
-            val before = credentials[key]
-            if (value.isEmpty()) credentials.remove(key) else credentials[key] = value
+            val before = typed[key]
+            if (value.isEmpty()) typed.remove(key) else typed[key] = value
             before != value.ifEmpty { null }
         }
         // On blur, not per keystroke; the key and the length, never the value.
@@ -102,9 +117,10 @@ object LiveConfig {
     /**
      * Applies a `wirexqa://seed?d=<base64url(JSON)>` link — the deep link the example registers — from
      * the launch intent or from text pasted into the Config tab. Returns the keys it set, or why it
-     * refused: another scheme or host, no `d`, undecodable. Any key is applied, the bearer and action
-     * token included; the RN example names identity `userWallet` / `userEmail`, which map to this
-     * example's `wallet` / `email`. `source` names where the link came from in the log.
+     * refused: another scheme or host, no `d`, undecodable, or an `ownerKey` in it. Any other key is
+     * applied, the bearer and action token included; the RN example names identity `userWallet` /
+     * `userEmail`, which map to this example's `wallet` / `email`. `source` names where the link came
+     * from in the log. A value typed on the Config tab or set at launch wins over the link's.
      */
     fun applySeedLink(link: String, source: String = "paste"): SeedOutcome {
         val text = link.trim()
@@ -138,12 +154,14 @@ object LiveConfig {
             // SECURITY: never the parser's message — it quotes the decoded payload, bearer included.
             return SeedOutcome.Rejected(incompleteJson(uri.toString().length, decoded.length))
         }
+        // SECURITY: a link travels in chats and QR codes, and a key never expires; refuse the whole link.
+        if (json.has("ownerKey")) return SeedOutcome.Rejected("a seed link never carries ownerKey: type it on the Config tab")
         val applied = mutableListOf<String>()
         for (rawKey in json.keys()) {
             val value = json.optString(rawKey)
             if (value.isEmpty()) continue
             val key = SEED_ALIASES[rawKey] ?: rawKey
-            setCredential(key, value, notify = false)
+            synchronized(lock) { seeded[key] = value }
             applied += key
         }
         notifyCredentialsChanged()
@@ -158,9 +176,13 @@ object LiveConfig {
 
     private val SEED_ALIASES = mapOf("userWallet" to "wallet", "userEmail" to "email")
 
-    /** Clears every credential / identity value back to empty (environment falls back to `test`). */
+    /** Clears what the Config tab and seed links set. Launch extras stay until the process ends. */
     fun resetCredentials() {
-        synchronized(lock) { credentials.clear() }
+        synchronized(lock) {
+            typed.clear()
+            seeded.clear()
+        }
+        WalletLogin.forget()
         notifyCredentialsChanged()
     }
 
@@ -177,11 +199,11 @@ object LiveConfig {
                 // An EMPTY string clears the key — see LiveConfig.swift for why this is not the
                 // same as omitting it.
                 if (value.isEmpty()) {
-                    credentials.remove(key)
+                    typed.remove(key)
                     cleared += key
                     continue
                 }
-                credentials[key] = value
+                typed[key] = value
                 applied += key
             }
         }
@@ -202,17 +224,20 @@ object LiveConfig {
      * difference between pasting a new token and hunting a bug.
      */
     fun credentialsStatus(): String =
-        listOf("bearer", "actionToken", "cardId", "chainId", "cardholderName", "email", "wallet").joinToString("\n") { key ->
+        listOf("bearer", "actionToken", "ownerKey", "companyId", "cardId", "chainId", "cardholderName", "email", "wallet").joinToString("\n") { key ->
             val value = credential(key)
+            val origin = if (isLaunchSet(key)) " (launch)" else ""
             when {
                 value.isEmpty() -> "$key: —"
+                // The key's address, never the key.
+                key == "ownerKey" -> "$key: " + (TestSigner.fromHex(value)?.let { "set, address ${it.address}" } ?: "NOT a valid key") + origin
                 else -> {
                     val expiry = jwtExpirySeconds(value)
                     if (expiry == null) {
-                        "$key: set"
+                        "$key: set$origin"
                     } else {
                         val remaining = expiry - System.currentTimeMillis() / 1000
-                        if (remaining > 0) "$key: valid ${remaining}s" else "$key: EXPIRED ${-remaining}s ago"
+                        (if (remaining > 0) "$key: valid ${remaining}s" else "$key: EXPIRED ${-remaining}s ago") + origin
                     }
                 }
             }

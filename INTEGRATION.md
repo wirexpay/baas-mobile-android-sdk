@@ -1,8 +1,8 @@
 # Wirex Mobile SDK for Android — Integration Guide
 
-One Maven artifact, four sealed surfaces: card **Reveal**, card **Collect**, **3-D Secure** and **Wallet** top-up with Google Pay. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against `com.wirexapp.baas:mobile-sdk` 0.3.15.
+One Maven artifact, four sealed surfaces: card **Reveal**, card **Collect**, **3-D Secure** and **Wallet** top-up with Google Pay, plus the **Trade** client for stocks and coins. This guide covers what each surface needs, where the credentials come from, how to style the views, and how to run the example app. Every snippet below is compiled against `com.wirexapp.baas:mobile-sdk` 0.3.15, except Trade, which ships in the next release.
 
-<!-- badges: Native Android · Kotlin | com.wirexapp.baas:mobile-sdk 0.3.15 · Maven Central | Reveal · Collect · 3-D Secure · Wallet -->
+<!-- badges: Native Android · Kotlin | com.wirexapp.baas:mobile-sdk 0.3.15 · Maven Central | Reveal · Collect · 3-D Secure · Wallet · Trade -->
 
 ## 1. What the SDK does
 
@@ -19,6 +19,7 @@ Your app supplies two things:
 | Collect | yes | Captures an external card in a sealed native form and tokenizes it at the acquirer. |
 | 3-D Secure | **no** | Renders the issuer challenge for a card payment and reports the outcome. |
 | Wallet | yes | Embeds the Wirex-hosted Google Pay checkout for a backend-priced top-up. |
+| Trade | yes, and a signer | Buys and sells stocks and coins from the user's account. Your app draws the screens and the user's wallet signs. |
 
 :::diagram model Google Pay
 
@@ -340,7 +341,58 @@ class WalletScreen(private val activity: Activity) {
 
 > **Gotcha · availability** Start a `WirexWalletAvailabilityChecker` with the real provider block before you show a Pay button; `onChange` reports the native Google Pay answer, and below the `min_webview_version` / `min_play_services_version` floors it answers unavailable without loading anything. Test on a device with Google Pay set up.
 
-## 8. Appearance, strings and sizing
+## 8. Trade {creds|signer}
+
+Stock and coin trades from the user's main account on Base or Arc, through the user's investment account on Base. `WirexTrade` is a client, not a view: it reads `api-business` and the chain, and your app draws the screens. It ships in the next release, listed under **Unreleased** in the [changelog](CHANGELOG.md).
+
+```kotlin
+import com.wirexapp.baas.trade.WirexTrade
+import com.wirexapp.baas.trade.WirexTradeError
+import com.wirexapp.baas.trade.WirexTradeMarket
+import com.wirexapp.baas.trade.WirexTradeSide
+import com.wirexapp.baas.trade.WirexTradeSigner
+
+// Your signer: the user's own wallet signs; the SDK never holds a key.
+class UserWalletSigner(override val address: String, private val wallet: YourWallet) : WirexTradeSigner {
+    override suspend fun signPersonal(hash: ByteArray): ByteArray = wallet.personalSign(hash) // 65 bytes r ‖ s ‖ v
+}
+
+suspend fun buyStock(owner: String, wallet: YourWallet, bearer: suspend () -> String) {
+    val trade = WirexTrade.create(
+        environment = "production",           // or "test"
+        chainId = "8453",                      // the main account's chain: 8453 Base, 5042 Arc
+        tokenProvider = { bearer() },          // read again for every request
+        signer = UserWalletSigner(owner, wallet),
+    )
+    try {
+        if (!trade.account().isSetUp) trade.setUpAccount { event -> println("${event.step.wire} ${event.state.wire}") }
+        val quote = trade.quote(WirexTradeMarket.STOCK, WirexTradeSide.BUY, "AAPL", "5.00") // a buy's amount is USD
+        val order = trade.execute(quote) { event -> println("${event.step.wire} ${event.state.wire} ${event.status ?: ""}") }
+        println("${order.status} ${order.amountOut}")
+    } catch (error: WirexTradeError) {
+        println(error.reason)                  // e.g. signer_mismatch, investment_wallet_required, quote_expired
+    }
+}
+```
+
+- **Create.** `WirexTrade.create(environment, chainId, tokenProvider, signer, logging, timeouts)`. `environment` is `production` or `test`, and the build holds the host; no member takes a URL. It throws `WirexEnvironmentUnavailable` when the build has no host for the environment, and `WirexTradeError` with `invalid_input` or `invalid_address` for a bad chain id or signer address.
+- **Bearer.** `WirexTradeTokenProvider.accessToken()` answers the user's bearer. It is read for every request, so a token you rotate needs no call to the SDK. A throw or an empty token fails the call with `token_unavailable`.
+- **Signer.** `WirexTradeSigner` has the owner's `address` and `signPersonal(hash)`, which answers 65 bytes `r ‖ s ‖ v`, signed per EIP-191 over the raw 32-byte hash. It may wait for the user's second factor. A throw fails the step with `signer_failed`, and nothing is sent.
+- **Members.** All are `suspend`:
+  - `account()` reads the main account, the investment account, its USDC and its holdings;
+  - `setUpAccount(onStep)` sets up the investment account once per user;
+  - `catalog()` lists the stocks and coins the company trades;
+  - `quote(market, side, symbol, amount)` quotes a trade. The amount is USD on a buy and the token on a sale;
+  - `execute(quote, onStep)` runs the quote until its order ends;
+  - `openOrders()` and `resume(orderId, quote, onStep)` carry on an order after the app is killed.
+- **Owner check.** Before the first signature of `setUpAccount`, `execute` and `resume`, the SDK checks that the signer owns the main account. A key that does not fails with `signer_mismatch`, and nothing is signed.
+- **Steps.** `onStep` gets one `WirexTradeStepEvent` per change: `step`, `state` (`started`, `done`, `failed`), and, when they apply, `orderId`, `status`, `reason`, `userOpHash` and `transactionHash`. The steps are `setup`, `check`, `provision`, `store`, `submit`, `fundRequest`, `fundExecute`, `swap`, `awaitOrder`, `burn` and `sweep`.
+- **Resume.** `openOrders()` lists the orders that have not ended, each with the `nextStep` `resume` would run. When the store, or an Arc sale's swap, never went, `resume` needs the quote that made the order; without it, it fails with `quote_required` and nothing is signed. Keep the quote while its order is open.
+- **Errors.** Every member fails with `WirexTradeError`. It has `reason`, and when they apply `step`, `orderId`, `routeReason`, `detailKey`, `httpStatus` and `entryPointCode`. It never carries an amount, an address or a hash.
+- **Environments.** On `test` the catalog reads, a buy quote answers `investment_wallet_required`, and the set-up cannot run. A full trade runs only on `production`, with real money.
+- The SDK keeps nothing on disk and holds no key. Every member reads `api-business` and the chain afresh.
+
+## 9. Appearance, strings and sizing
 
 Every surface takes an appearance object and a strings object. The SDK ships no copy, so your app supplies every word the views draw.
 
@@ -401,7 +453,7 @@ object Styling {
 - **Sizing.** `WirexRevealFieldView.naturalHeightPx(widthPx)` and `WirexCollectForm.naturalHeightPx(widthPx)` measure the content; the wallet emits a `NaturalHeight` event. Use `WRAP_CONTENT` or apply those heights instead of hardcoding them.
 - **Screenshot protection.** `FLAG_SECURE` is acquired on the hosting window automatically while a sealed view is attached. Pass the window explicitly with `secureWindow(window)` when the view lives in a `Dialog` or `PopupWindow` the SDK cannot resolve.
 
-## 9. Logging, timeouts and errors
+## 10. Logging, timeouts and errors
 
 ```kotlin
 import com.wirexapp.baas.cards.core.WirexCredentialProvider
@@ -451,7 +503,7 @@ object Diagnostics {
 - `WirexEnvironmentUnavailable` is thrown by `WirexEnvironment.resolve(name, chainId)` and `WirexWalletEnvironment.resolve(name)` for an unknown name or a blank `chainId`; the `create(...)` factories return `null` instead.
 - `WirexDeclined` is not an error state: the user said no, and nothing was sent.
 
-## 10. Your backend
+## 11. Your backend
 
 The SDK makes none of these calls. Your backend performs them with the partner credentials Wirex issued, and the app passes the results in:
 
@@ -462,11 +514,11 @@ The SDK makes none of these calls. Your backend performs them with the partner c
 
 Authenticated calls carry `Authorization: Bearer`, `X-Chain-Id` and one identity header (`X-User-Email` or `X-User-Wallet`, never both). For exact paths and payloads see the Wirex BaaS API reference provided with your integration.
 
-## 11. The example app
+## 12. The example app
 
-[`example/`](example/) is a Kotlin app that exercises all four surfaces against your own data; nothing is compiled in. Open it in Android Studio and run the `app` module; it resolves the SDK from Maven Central. The **Config** tab is a per-field editor for the environment, the integration parameters (chain id, identity, card id, cardholder name) and the secrets (bearer, step-up action token); values live in memory only, and every screen reads them live. The **Wallet** screen takes an estimation id and the provider block, and its **Fetch estimate** button prices a top-up through the BaaS API with your bearer, so you can get a real estimation id without standing up a backend. The **Appearance** tab restyles every sealed surface at once. The field list is in [`PARTNER-CONFIG.md`](PARTNER-CONFIG.md). The Pay sheet needs a device with Google Pay set up.
+[`example/`](example/) is a Kotlin app that exercises all four surfaces against your own data; nothing is compiled in. Open it in Android Studio and run the `app` module; it resolves the SDK from Maven Central. The **Config** tab is a per-field editor for the environment, the integration parameters (chain id, identity, card id, cardholder name) and the secrets (bearer, step-up action token); values live in memory only, and every screen reads them live. The **Wallet** screen takes an estimation id and the provider block, and its **Fetch estimate** button prices a top-up through the BaaS API with your bearer, so you can get a real estimation id without standing up a backend. The **Appearance** tab restyles every sealed surface at once. The **Trade** tab runs a stock or coin trade end to end, with the panels Account, Catalog, Quote, Trade and Open orders. It signs with a test user's exported key, `ownerKey`, held in memory only, and gets the bearer from that key through the wallet-signature login. On `production` it refuses a trade worth more than 10 USD. The field list is in [`PARTNER-CONFIG.md`](PARTNER-CONFIG.md). The Pay sheet needs a device with Google Pay set up.
 
-## 12. Patterns from a production integration
+## 13. Patterns from a production integration
 
 The SDK ships inside a production cardholder app built on the same BaaS API. The patterns below are not required by the API; they are what that integration settled on, with the app-specific parts removed.
 
@@ -641,7 +693,7 @@ object WalletArming {
 - **A failed mint is not fatal in-app.** Run legacy mode instead: the frame tokenizes and your backend executes. Keep `debug` off outside development builds.
 - **Custom Tab is the partner path for Google Pay on Android** when your own WebView cannot complete it. Use an **https App Link** as `returnUrl` (a custom scheme can be claimed by any installed app), open the URL in a Chrome Custom Tab, and treat every ending that is not `COMPLETED`, `PENDING` or `FAILED` as unknown: Android cannot close the tab for you, and a closed tab says nothing about the payment. A Custom Tab needs token mode; there is nobody to hand a wallet token to.
 
-## 13. Troubleshooting
+## 14. Troubleshooting
 
 - **A revealed field is blank or will not unmask.** Screenshot protection is not active on this window (`onRevealRefused` fires); pass the window with `secureWindow(window)`.
 - **`create(...)` returns `null`.** This build has no endpoints for that side, or `chainId` is blank. Call `WirexEnvironment.resolve(name, chainId)` to get the reason.

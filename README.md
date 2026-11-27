@@ -8,6 +8,8 @@ values.
 - **Collect** (`WirexCollect`, `WirexCollectForm`) takes a card the user is entering and returns a
   token in place of the card values.
 - **Wallet top-up** (`WirexWalletCheckoutView`) hosts the Wirex checkout with Google Pay.
+- **Trade** (`WirexTrade`) buys and sells stocks and coins from the user's account. The host's
+  signer signs each step, and the SDK holds no key. It ships in the next release.
 
 Use of the SDK requires an agreement with Wirex. See [LICENSE](LICENSE).
 

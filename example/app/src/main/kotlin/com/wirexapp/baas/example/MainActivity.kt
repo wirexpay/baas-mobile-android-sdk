@@ -15,7 +15,8 @@ import com.wirexapp.baas.cards.core.logging.WirexLogLevel
 import com.wirexapp.baas.cards.core.logging.WirexLogSink
 
 /**
- * Six tabs, the same set every platform has: **Config**, **Reveal**, **Collect**, **3DS**, **Wallet**, **Appearance**.
+ * Seven tabs, the same set every platform has: **Config**, **Reveal**, **Collect**, **3DS**, **Wallet**,
+ * **Appearance**, **Trade**.
  *
  * A bottom button bar rather than `BottomNavigationView`: Material would be a dependency this example
  * does not otherwise need, and the point of the screen is the SDK's own views, not the chrome around
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
         // arm a device without typing. Applied before the screens configure, so the first configure
         // sees it. The example keeps every value in memory only; nothing is persisted.
         applySeedLink(intent)
+        applyLaunchExtras(intent)
 
         reveal = RevealScreen(this, credentials)
         threeDS = ThreeDSScreen(this, intent?.getStringExtra("threeDsUrl").orEmpty())
@@ -73,6 +75,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        applyLaunchExtras(intent)
         if (intent.action == Intent.ACTION_VIEW) {
             val data = intent.dataString
             if (data != null && data.startsWith("wirexqa://seed")) {
@@ -94,6 +97,16 @@ class MainActivity : AppCompatActivity() {
      */
     private fun applySeedLink(intent: Intent?) {
         intent?.data?.let { LiveConfig.applySeedLink(it.toString(), source = "intent") }
+    }
+
+    /**
+     * `adb shell am start -e <key> <value>` fills the config, highest of the three sources. Debug builds only:
+     * SECURITY: a release build never reads a credential from an intent another app could send.
+     */
+    private fun applyLaunchExtras(intent: Intent?) {
+        if (!BuildConfig.DEBUG) return
+        val extras = intent?.extras ?: return
+        LiveConfig.applyLaunch(LiveConfig.launchKeys.mapNotNull { key -> extras.getString(key)?.let { key to it } }.toMap())
     }
 
     private fun buildLayout(): View {
@@ -123,8 +136,9 @@ class MainActivity : AppCompatActivity() {
         )
         addTab(bar, "Wallet", Ui.scroller(this, walletLaunch.build()) { currentFocus })
         addTab(bar, "Appearance", Ui.scroller(this, AppearanceScreen(this).build()) { currentFocus })
-        // `-e screen config|collect|threeds|wallet|appearance` opens straight onto that tab, for scripted runs.
-        select(listOf("config", "reveal", "collect", "threeds", "wallet", "appearance").indexOf(intent?.getStringExtra("screen")).coerceAtLeast(0))
+        addTab(bar, "Trade", Ui.scroller(this, TradeScreen(this).build()) { currentFocus })
+        // `-e screen config|collect|threeds|wallet|appearance|trade` opens straight onto that tab, for scripted runs.
+        select(listOf("config", "reveal", "collect", "threeds", "wallet", "appearance", "trade").indexOf(intent?.getStringExtra("screen")).coerceAtLeast(0))
 
         var lastImeBottom = 0
         return LinearLayout(this).apply {
