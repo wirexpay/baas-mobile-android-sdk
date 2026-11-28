@@ -3,8 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// The published SDK version this example resolves.
-val sdkVersion = "0.3.15"
+// The published SDK version this example resolves. `-PwirexSdkVersion` names another, for `-PwirexSdkRepo`.
+val sdkVersion = providers.gradleProperty("wirexSdkVersion").orNull ?: "0.3.15"
 
 android {
     namespace = "com.wirexapp.baas.example"

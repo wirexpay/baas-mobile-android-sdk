@@ -10,6 +10,9 @@ values.
 - **Wallet top-up** (`WirexWalletCheckoutView`) hosts the Wirex checkout with Google Pay.
 - **Trade** (`WirexTrade`) buys and sells stocks and coins from the user's account. The host's
   signer signs each step, and the SDK holds no key. It ships in the next release.
+- **Crypto** (`WirexCrypto`) sends from the user's account to an address on its own chain or
+  another network, and makes deposit addresses. The same signer signs, and it ships in the next
+  release.
 
 Use of the SDK requires an agreement with Wirex. See [LICENSE](LICENSE).
 

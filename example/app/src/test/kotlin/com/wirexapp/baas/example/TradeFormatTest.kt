@@ -31,4 +31,19 @@ class TradeFormatTest {
         assertEquals("—", TradeFormat.formatUnits(null, 6))
         assertEquals("abc", TradeFormat.formatUnits("abc", 6))
     }
+
+    @Test fun cryptoLineCarriesTheCryptoHint() {
+        assertEquals(
+            "recipient_is_account · (the recipient is the main account itself) · step request",
+            TradeFormat.describeCrypto("recipient_is_account", "request", null, null, null, null),
+        )
+        assertEquals(
+            "insufficient_funds · (the main account cannot cover the send) · HTTP 402",
+            TradeFormat.describeCrypto("insufficient_funds", null, null, null, 402, null),
+        )
+    }
+
+    @Test fun tradeKeepsItsOwnHint() {
+        assertEquals("insufficient_funds · (the main account cannot cover the buy)", TradeFormat.describe("insufficient_funds", null, null, null, null, null))
+    }
 }

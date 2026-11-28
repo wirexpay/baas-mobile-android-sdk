@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Opens a debug build of the example on the Trade tab, with its config from env or example/trade.local.env.
+# Opens a debug build on the Trade tab (WIREX_SCREEN=crypto for Crypto), its config from env or example/trade.local.env.
 # FOR TESTING ONLY. It passes values by variable and prints only key names. CI never runs it.
 set -euo pipefail
 
@@ -16,7 +16,7 @@ if [[ -f "${LOCAL}" ]]; then
 fi
 
 COMPONENT="com.wirexapp.baas.example.android/com.wirexapp.baas.example.MainActivity"
-args=(-S -n "${COMPONENT}" -e screen trade)
+args=(-S -n "${COMPONENT}" -e screen "${WIREX_SCREEN:-trade}")
 set_keys=()
 add() {
   local key="$1" value="${2:-}"

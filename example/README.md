@@ -2,7 +2,7 @@
 
 A native Android app (Kotlin, View-based) that exercises **every surface** of the SDK — card
 **Reveal**, card **Collect**, the **3-D Secure** step-up, **Wallet** top-up (Apple Pay / Google
-Pay) and **Trade**. One Maven artifact, `com.wirexapp.baas:mobile-sdk`, carries every surface.
+Pay), **Trade** and **Crypto**. One Maven artifact, `com.wirexapp.baas:mobile-sdk`, carries every surface.
 
 ## Install & run
 
@@ -21,7 +21,7 @@ every surface reads live — type a value and the next call picks it up, no rebu
 
 - the **environment** (`test` / `production`), a name the SDK maps onto the hosts it ships with;
 - integration parameters — chain id, company id, user email, user wallet, card id, cardholder name;
-- secrets (bearer, step-up action token, the Trade tab's owner key), held in memory only and never
+- secrets (bearer, step-up action token, the Trade and Crypto tabs' owner key), held in memory only and never
   persisted or logged.
 
 The Wallet surface takes the same environment name from the Config tab.
@@ -60,17 +60,40 @@ The tab runs a stock or coin trade against a real environment. It needs `environ
 tools/trade-launch.sh
 ```
 
-### Before the SDK release: build against the SDK sources
+## The Crypto tab
 
-Until the SDK version with `Trade` is published, this branch builds only against a local checkout of the SDK
-sources, through a dev-only Gradle property. Without it the build resolves the published artifact, which has no
-`Trade` yet.
+The tab sends from the main account and gets deposit addresses, against a real environment. It takes the same
+config, key and bearer as the Trade tab.
+
+- **Balances**: `Read balances`.
+- **Send**: network, token, recipient and amount, then `Get quote`, which shows the rail, the fee and what
+  arrives. `Send` shows each step. `Check delivery` reads a send to another network.
+- **Pending**: `Load pending`, with a `Resume` per row.
+- **Deposit**: a family, then `Get deposit address`, which shows the address, its networks, tokens and limits.
+- The tab holds its quotes in memory only. A pending row carries no `sendId`, so `Resume` finds the row's quote by
+  its `requestHash`. After a restart a row has no quote: it shows "no quote held for this send", and its `Resume`
+  stays off.
+- On `production` the tab refuses a send worth more than 10 USD. It checks the typed amount, then what leaves at
+  `Send` and `Resume`, read against fresh balances. USDC, USDT and WUSD count at face value, EURC and WEUR at
+  1.25 USD each, and any other token is refused.
+
+`WIREX_SCREEN=crypto tools/trade-launch.sh` opens the Crypto tab instead.
+
+### Before the SDK release: build against the SDK
+
+Until the SDK version with `Trade` and `Crypto` is published, this branch builds only against a local SDK, through
+one of two dev-only Gradle properties. Without them the build resolves the published artifact, which has neither
+yet.
 
 ```sh
+# the SDK's sources, as an included build
 ./gradlew -PwirexSdkSource=<path to the baas-android-sdk checkout> :app:installDebug
+# or a Maven repository the SDK's publishToMavenLocal filled, with the version it published
+./gradlew -PwirexSdkRepo=<repository dir> -PwirexSdkVersion=<version> :app:installDebug
 ```
 
-A checkout of the SDK sources has an empty endpoint table, so `WirexTrade.create` refuses every environment. Before
+A checkout of the SDK sources has an empty endpoint table, so `WirexTrade.create` and `WirexCrypto.create` refuse
+every environment. Before
 a run, the tester fills the table in that checkout, and empties it again afterwards so that nothing is committed:
 
 ```sh
@@ -93,6 +116,7 @@ Nothing reads it at build time, so no build, a CI build included, carries a key.
 | **Wallet** | the hosted Apple Pay / Google Pay checkout (paste a provider block, build a quote — legacy tokenise flow) |
 | **Appearance** | restyle every sealed surface at once — presets or a pasted token document |
 | **Trade** | Account, Catalog, Quote, Trade and Open orders: a stock or coin trade end to end |
+| **Crypto** | Balances, Send, Pending and Deposit: a send to an address and a deposit address |
 
 The field contract is the same across the React Native / iOS / Flutter examples — see
 `../PARTNER-CONFIG.md`.

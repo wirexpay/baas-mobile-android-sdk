@@ -1,5 +1,6 @@
 package com.wirexapp.baas.example
 
+import com.wirexapp.baas.crypto.WirexCryptoError
 import com.wirexapp.baas.trade.WirexTradeError
 
 /** Display helpers of the Trade tab, the same text every platform's example writes. */
@@ -13,6 +14,21 @@ object TradeFormat {
         "quote_expired" to "get a new quote",
         "insufficient_funds" to "the main account cannot cover the buy",
         "order_not_ended" to "the order is still open: resume it from Open orders",
+    )
+
+    private val CRYPTO_HINTS = mapOf(
+        "invalid_address" to "the recipient is not an address of that network",
+        "recipient_is_account" to "the recipient is the main account itself",
+        "insufficient_funds" to "the main account cannot cover the send",
+        "quote_expired" to "get a new quote",
+        "quote_mismatch" to "the quote is not this send's",
+        "over_limit" to "try a smaller amount",
+        "amount_too_small" to "try a larger amount",
+        "bridge_unavailable" to "the bridge is unavailable: try again later",
+        "rhino_key_missing" to "the company has no rhino.fi key",
+        "deposit_unavailable" to "no deposit network is left: ask again later",
+        "signer_mismatch" to "the key does not own this account",
+        "token_unavailable" to "sign in again",
     )
 
     /** Base units as decimal text, trailing zeros dropped. Unreadable input shows as it came. */
@@ -33,9 +49,29 @@ object TradeFormat {
         detailKey: String?,
         httpStatus: Int?,
         entryPointCode: String?,
+    ): String = line(HINTS, reason, step, routeReason, detailKey, httpStatus, entryPointCode)
+
+    /** The same line for a Crypto failure, with the Crypto tab's hints. */
+    fun describeCrypto(
+        reason: String,
+        step: String?,
+        routeReason: String?,
+        detailKey: String?,
+        httpStatus: Int?,
+        entryPointCode: String?,
+    ): String = line(CRYPTO_HINTS, reason, step, routeReason, detailKey, httpStatus, entryPointCode)
+
+    private fun line(
+        hints: Map<String, String>,
+        reason: String,
+        step: String?,
+        routeReason: String?,
+        detailKey: String?,
+        httpStatus: Int?,
+        entryPointCode: String?,
     ): String {
         val parts = mutableListOf(reason)
-        HINTS[reason]?.let { parts += "($it)" }
+        hints[reason]?.let { parts += "($it)" }
         step?.let { parts += "step $it" }
         routeReason?.let { parts += "route $it" + (detailKey?.let { key -> " / $key" } ?: "") }
         httpStatus?.let { parts += "HTTP $it" }
@@ -45,6 +81,7 @@ object TradeFormat {
 
     fun describe(error: Throwable): String = when (error) {
         is WirexTradeError -> describe(error.reason, error.step?.wire, error.routeReason, error.detailKey, error.httpStatus, error.entryPointCode)
+        is WirexCryptoError -> describeCrypto(error.reason, error.step?.wire, error.routeReason, error.detailKey, error.httpStatus, error.entryPointCode)
         else -> "${error.javaClass.simpleName}: ${error.message ?: "(no message)"}"
     }
 }

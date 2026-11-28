@@ -9,6 +9,14 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // DEV ONLY: `-PwirexSdkRepo=<dir>` takes the SDK from a Maven repository the SDK's `publishToMavenLocal`
+        // filled, with `-PwirexSdkVersion` naming its version. Only the SDK's group resolves there.
+        providers.gradleProperty("wirexSdkRepo").orNull?.let { repo ->
+            exclusiveContent {
+                forRepository { maven { url = uri(repo) } }
+                filter { includeGroup("com.wirexapp.baas") }
+            }
+        }
         google()
         mavenCentral()
     }

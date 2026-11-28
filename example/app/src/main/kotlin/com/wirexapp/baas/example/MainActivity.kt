@@ -15,8 +15,8 @@ import com.wirexapp.baas.cards.core.logging.WirexLogLevel
 import com.wirexapp.baas.cards.core.logging.WirexLogSink
 
 /**
- * Seven tabs, the same set every platform has: **Config**, **Reveal**, **Collect**, **3DS**, **Wallet**,
- * **Appearance**, **Trade**.
+ * Eight tabs, the same set every platform has: **Config**, **Reveal**, **Collect**, **3DS**, **Wallet**,
+ * **Appearance**, **Trade**, **Crypto**.
  *
  * A bottom button bar rather than `BottomNavigationView`: Material would be a dependency this example
  * does not otherwise need, and the point of the screen is the SDK's own views, not the chrome around
@@ -137,8 +137,9 @@ class MainActivity : AppCompatActivity() {
         addTab(bar, "Wallet", Ui.scroller(this, walletLaunch.build()) { currentFocus })
         addTab(bar, "Appearance", Ui.scroller(this, AppearanceScreen(this).build()) { currentFocus })
         addTab(bar, "Trade", Ui.scroller(this, TradeScreen(this).build()) { currentFocus })
-        // `-e screen config|collect|threeds|wallet|appearance|trade` opens straight onto that tab, for scripted runs.
-        select(listOf("config", "reveal", "collect", "threeds", "wallet", "appearance", "trade").indexOf(intent?.getStringExtra("screen")).coerceAtLeast(0))
+        addTab(bar, "Crypto", Ui.scroller(this, CryptoScreen(this).build()) { currentFocus })
+        // `-e screen config|collect|threeds|wallet|appearance|trade|crypto` opens straight onto that tab, for scripted runs.
+        select(listOf("config", "reveal", "collect", "threeds", "wallet", "appearance", "trade", "crypto").indexOf(intent?.getStringExtra("screen")).coerceAtLeast(0))
 
         var lastImeBottom = 0
         return LinearLayout(this).apply {
