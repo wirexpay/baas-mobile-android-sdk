@@ -2,6 +2,8 @@
 
 ## Unreleased
 - Trade: `WirexTrade.create(environment, chainId, tokenProvider, signer)` buys and sells stocks and coins from the user's main account on Base or Arc, through the investment account on Base. Members: `account`, `setUpAccount`, `catalog`, `quote`, `execute`, `openOrders` and `resume`. The host's `WirexTradeSigner` signs; the SDK holds no key and keeps nothing on disk. A failure is a `WirexTradeError` with a reason name.
+- Crypto: `WirexCrypto.create(environment, chainId, tokenProvider, signer)` sends from the user's main account on Base or Arc, on its own chain or to another network by CCTP, rhino.fi or Across, and makes deposit addresses. Members: `balances`, `quoteSend`, `send`, `resumeSend`, `sendStatus`, `pendingSends` and `depositAddress`. It takes the same signer and token provider as `WirexTrade`. A failure is a `WirexCryptoError` with a reason name.
+- Example: a Crypto tab with the panels Balances, Send, Pending and Deposit. It holds its quotes in memory only, and refuses a production send worth more than 10 USD.
 - Example: a Trade tab with the panels Account, Catalog, Quote, Trade and Open orders. It signs with a test user's key held in memory only, and refuses a production trade worth more than 10 USD.
 - Example: the config takes launch extras in debug builds, which win over the Config tab, which wins over a seed link. A seed link that carries `ownerKey` is refused.
 

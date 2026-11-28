@@ -16,8 +16,8 @@ the provider block, or fetches an estimate with your bearer.
 ### Integration parameters (non-secret)
 | Field | What it is | Who gives it |
 |---|---|---|
-| `chainId` | `X-Chain-Id` — the chain the partner operates on. For Trade, the main account's chain: 8453 Base, 5042 Arc | **Wirex**, per integration |
-| `companyId` | `X-Company-Id` of the Trade tab's wallet-signature login | **Wirex**, per integration |
+| `chainId` | `X-Chain-Id` — the chain the partner operates on. For Trade and Crypto, the main account's chain: 8453 Base, 5042 Arc | **Wirex**, per integration |
+| `companyId` | `X-Company-Id` of the Trade and Crypto tabs' wallet-signature login | **Wirex**, per integration |
 | `clientId` | `?client=` on the hosted pages (optional) | **Wirex** |
 | `userEmail` / `userWallet` | identity headers `X-User-Email` / `X-User-Wallet` | partner (the signed-in user) |
 | `cardId` | the card Reveal / Collect act on | partner (a provisioned card) |
@@ -32,7 +32,7 @@ the provider block, or fetches an estimate with your bearer.
 | `bearer` | `getAccessToken` — Wirex bearer for the user | minted by the partner's auth |
 | `actionToken` | `getActionToken` — step-up for card data / PIN | the user's **wallet signature**, exchanged by the partner's backend |
 | `checkoutToken` | token mode — the short-lived top-up token | minted by the **partner's backend** |
-| `ownerKey` | the Trade tab's signer: a **test user's** exported private key. The bearer comes from it through `POST /api/v1/user/authorize` in wallet-signature mode, and a pasted `bearer` wins | the user's own wallet signs; a real app never holds a key |
+| `ownerKey` | the Trade and Crypto tabs' signer: a **test user's** exported private key. The bearer comes from it through `POST /api/v1/user/authorize` in wallet-signature mode, and a pasted `bearer` wins | the user's own wallet signs; a real app never holds a key |
 
 ### Dev options
 | Toggle | What it does |
@@ -66,6 +66,7 @@ CI checkouts never have the local file, so no Firebase build carries a key.
 | **Wallet — Apple Pay / Google Pay** | environment, chainId, bearer, walletProvider, walletAmount/Currency; paste the estimation id + provider config on the Wallet screen |
 | **Wallet — token mode** | the above + a `checkoutToken` your backend minted |
 | **Trade** (stocks and coins) | environment, chainId, companyId, ownerKey; or a pasted bearer with ownerKey. On `production` a trade is real money, and the tab refuses one worth more than 10 USD |
+| **Crypto** (sends and deposit addresses) | the same as Trade. On `production` a send is real money, and the tab refuses one worth more than 10 USD. USDC, USDT and WUSD count at face value, EURC and WEUR at 1.25 USD, and any other token is refused |
 
 ## Credentials in a real integration
 

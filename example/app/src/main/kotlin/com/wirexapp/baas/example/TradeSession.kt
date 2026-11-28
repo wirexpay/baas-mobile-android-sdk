@@ -44,19 +44,22 @@ class TradeSession {
         return true
     }
 
-    private fun problems(environment: String, chainId: String, signer: TestSigner?): String? {
-        val list = mutableListOf<String>()
-        if (environment != "production" && environment != "test") list += "environment: production or test"
-        if (chainId.isEmpty()) list += "chainId: 8453 for Base, 5042 for Arc"
-        if (LiveConfig.credential("companyId").isEmpty() && LiveConfig.credential("bearer").isEmpty()) list += "companyId: needed for the login"
-        if (signer == null) list += "ownerKey: a 32-byte hex private key"
-        return list.takeIf { it.isNotEmpty() }?.joinToString("\n")
+    internal companion object {
+        /** What the config still lacks for a trade or a send, one line each, or null when nothing. */
+        fun problems(environment: String, chainId: String, signer: TestSigner?): String? {
+            val list = mutableListOf<String>()
+            if (environment != "production" && environment != "test") list += "environment: production or test"
+            if (chainId.isEmpty()) list += "chainId: 8453 for Base, 5042 for Arc"
+            if (LiveConfig.credential("companyId").isEmpty() && LiveConfig.credential("bearer").isEmpty()) list += "companyId: needed for the login"
+            if (signer == null) list += "ownerKey: a 32-byte hex private key"
+            return list.takeIf { it.isNotEmpty() }?.joinToString("\n")
+        }
     }
+}
 
-    /** The example's [TestSigner] as the SDK takes a host signer. */
-    private class HostSigner(private val signer: TestSigner) : WirexTradeSigner {
-        override val address: String = signer.address
+/** The example's [TestSigner] as the SDK takes a host signer; `WirexCrypto` takes the same interface. */
+internal class HostSigner(private val signer: TestSigner) : WirexTradeSigner {
+    override val address: String = signer.address
 
-        override suspend fun signPersonal(hash: ByteArray): ByteArray = signer.signPersonal(hash)
-    }
+    override suspend fun signPersonal(hash: ByteArray): ByteArray = signer.signPersonal(hash)
 }
